@@ -3370,10 +3370,9 @@ class ThemePlugin extends Plugin {
       }
 
       // theme file attached
-      const docInfo = (msg as any).document as Api.Document | undefined;
-      if (!docInfo) return;
-      const name = documentAttributeFileName(docInfo).toLowerCase();
-      const size = Number(docInfo.size || 0);
+      const doc = msg.media as import("@mtcute/core").Document;
+      const name = (doc.fileName || "").toLowerCase();
+      const size = doc.fileSize || 0;
       if (size > MAX_FILE_SIZE || size === 0) return;
       if (!name.endsWith(".attheme") && !name.endsWith(".tdesktop-theme") && !name.endsWith(".tgios-theme") && !name.endsWith(".tgx-theme") && !name.endsWith(".json") && !name.endsWith(".tdesktop-palette") && !name.includes("theme") && !name.includes("tgx") && !name.includes("settings")) return;
 
@@ -3384,7 +3383,7 @@ class ThemePlugin extends Plugin {
       // cloud-settings JSON first, then binary formats
       const cloudDoc = parseCloudSettingsJson(buf);
       if (cloudDoc) {
-        const baseName = (documentAttributeFileName(docInfo) || "cloud-theme").replace(/\.[^.]+$/, "") || "theme";
+        const baseName = (doc.fileName || "cloud-theme").replace(/\.[^.]+$/, "") || "theme";
         await msg.edit({ text: html`⏳ 云端 JSON → 四端…`, parseMode: "html" });
         // Materialize as synthetic attheme buffer is unnecessary — feed colors via render path
         // by building a minimal attheme for the pipeline
@@ -3409,7 +3408,7 @@ class ThemePlugin extends Plugin {
         return;
       }
       // Route through the same lossless multi-format pipeline as link
-      const baseName = (documentAttributeFileName(docInfo) || "theme").replace(/\.[^.]+$/, "") || "theme";
+      const baseName = (doc.fileName || "theme").replace(/\.[^.]+$/, "") || "theme";
       await this.sendThemeResults(
         msg,
         baseName,
