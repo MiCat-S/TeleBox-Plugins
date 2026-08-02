@@ -218,7 +218,8 @@ class GreetingPlugin extends Plugin {
       {
             "key": "enabled",
             "label": "启用",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "开启晚安/早安打卡功能"
       },
       {
             "key": "timezone",
@@ -226,7 +227,8 @@ class GreetingPlugin extends Plugin {
             "type": "number",
             "min": -12,
             "max": 14,
-            "default": 8
+            "default": 8,
+            "description": "UTC 时区偏移，北京时间=8"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
