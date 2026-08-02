@@ -1179,7 +1179,8 @@ class AutoDeletePlugin extends Plugin {
       {
             "key": "enabled",
             "label": "启用自动删除",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "开启后自动删除用户发送的指令消息"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
