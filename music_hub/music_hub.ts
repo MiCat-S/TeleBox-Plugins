@@ -1208,6 +1208,7 @@ class MusicHubPlugin extends Plugin {
           { value: "spotify", label: "Spotify" },
         ],
         default: "auto",
+        description: "音乐搜索的默认音源",
       },
       {
         key: "br",
@@ -1219,6 +1220,7 @@ class MusicHubPlugin extends Plugin {
           { value: "999", label: "无损/最高 (999)" },
         ],
         default: "999",
+        description: "音频比特率",
       },
       {
         key: "maxResults",
