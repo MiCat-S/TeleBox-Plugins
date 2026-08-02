@@ -352,12 +352,14 @@ class NodeSeekPlugin extends Plugin {
             "key": "cookie",
             "label": "Cookie",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "NodeSeek 论坛登录 Cookie"
       },
       {
             "key": "chatId",
             "label": "推送 Chat ID",
-            "type": "string"
+            "type": "string",
+            "description": "推送通知的目标 Chat ID"
       },
       {
             "key": "interval",
@@ -365,7 +367,8 @@ class NodeSeekPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 1440,
-            "default": 5
+            "default": 5,
+            "description": "论坛通知检查间隔"
       },
       {
             "key": "maxItems",
@@ -373,7 +376,8 @@ class NodeSeekPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 20,
-            "default": 5
+            "default": 5,
+            "description": "单次推送的最大通知条数"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
