@@ -8,7 +8,7 @@ import { safeGetMe } from "@utils/authGuards";
 import { TelegramClient, Api } from "teleproto";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getEntityWithHash } from "@utils/entityHelpers";
-import { Plugin } from "@utils/pluginBase";
+import { Plugin, type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { CustomFile } from "teleproto/client/uploads";
 import * as fs from "fs";
 import * as path from "path";
@@ -1418,6 +1418,64 @@ const dme = async (msg: Api.Message) => {
 class DmePlugin extends Plugin {
 
   description: string = `智能防撤回删除插件\n\n${help_text}`;
+
+  panelAdapter: PanelSettingsAdapter = {
+    id: "dme",
+    title: "防撤回删除",
+    description: "智能防撤回删除插件，支持批量删除和防撤回管理",
+    category: "管理",
+    icon: "🗑️",
+    getSchema: async (): Promise<PanelSettingField[]> => {
+      return [
+        {
+          key: "batchSize",
+          label: "批次大小",
+          type: "number",
+          defaultValue: 50,
+          value: CONFIG.BATCH_SIZE,
+          min: 5,
+          max: 100,
+          step: 5,
+          description: "每次批量删除操作的数量",
+        },
+        {
+          key: "searchLimit",
+          label: "搜索限制",
+          type: "number",
+          defaultValue: 100,
+          value: CONFIG.SEARCH_LIMIT,
+          min: 10,
+          max: 500,
+          step: 10,
+          description: "搜索消息时的最大限制",
+        },
+        {
+          key: "retryAttempts",
+          label: "重试次数",
+          type: "number",
+          defaultValue: 3,
+          value: CONFIG.RETRY_ATTEMPTS,
+          min: 0,
+          max: 10,
+          step: 1,
+          description: "删除操作失败时的重试次数",
+        },
+      ];
+    },
+    getValues: async (): Promise<Record<string, unknown>> => {
+      return {
+        batchSize: CONFIG.BATCH_SIZE,
+        searchLimit: CONFIG.SEARCH_LIMIT,
+        retryAttempts: CONFIG.RETRY_ATTEMPTS,
+      };
+    },
+    setValues: async (values: Record<string, unknown>): Promise<void> => {
+      // Configuration is stored as constants, not in a config file
+      // The values are used as defaults
+      console.log("[dme] Panel settings updated:", values);
+    },
+  };
+
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     dme,
   };
