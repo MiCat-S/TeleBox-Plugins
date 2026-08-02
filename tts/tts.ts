@@ -473,6 +473,7 @@ class TTSPlugin extends Plugin {
           { value: "riff-16khz-16bit-mono-pcm", label: "WAV 16kHz 16bit PCM" },
         ],
         default: "audio-48khz-192kbitrate-mono-mp3",
+        description: "语音输出的音频格式和质量",
       },
     ],
     getValues: async () => {
