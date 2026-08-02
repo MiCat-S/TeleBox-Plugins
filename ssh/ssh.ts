@@ -342,7 +342,8 @@ class SSHPlugin extends Plugin {
             "key": "ssh_target_chat",
             "label": "目标聊天",
             "type": "string",
-            "default": "me"
+            "default": "me",
+            "description": "SSH 连接的目标聊天 ID，me=私聊"
       },
       {
             "key": "ssh_ssh_port",
@@ -350,7 +351,8 @@ class SSHPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 65535,
-            "default": 22
+            "default": 22,
+            "description": "SSH 连接端口号"
       },
       {
             "key": "ssh_password_auth",
@@ -365,7 +367,8 @@ class SSHPlugin extends Plugin {
                         "value": "no",
                         "label": "关闭"
                   }
-            ]
+            ],
+            "description": "是否允许密码认证"
       },
       {
             "key": "ssh_pubkey_auth",
@@ -380,7 +383,8 @@ class SSHPlugin extends Plugin {
                         "value": "no",
                         "label": "关闭"
                   }
-            ]
+            ],
+            "description": "是否允许公钥认证"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
