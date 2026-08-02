@@ -337,7 +337,8 @@ class FadianPlugin extends Plugin {
       {
             "key": "enabled",
             "label": "启用",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "开启后自动响应发电消息"
       },
       {
             "key": "cooldown",
@@ -345,7 +346,8 @@ class FadianPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 1440,
-            "default": 60
+            "default": 60,
+            "description": "两次发电消息的最小间隔，防止刷屏"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
