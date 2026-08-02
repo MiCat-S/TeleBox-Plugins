@@ -2123,13 +2123,15 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
             "key": "default_provider",
             "label": "默认提供商",
             "type": "string",
-            "placeholder": "如: openai"
+            "placeholder": "如: openai",
+            "description": "默认使用的 AI 总结提供商"
       },
       {
             "key": "default_prompt",
             "label": "默认提示词",
             "type": "textarea",
-            "placeholder": "总结以下内容"
+            "placeholder": "总结以下内容",
+            "description": "AI 总结的默认提示词"
       },
       {
             "key": "default_timeout",
@@ -2137,30 +2139,35 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
             "type": "number",
             "min": 10,
             "max": 300,
-            "default": 60
+            "default": 60,
+            "description": "AI 请求超时时间"
       },
       {
             "key": "default_spoiler",
             "label": "默认使用 Spoiler",
             "type": "boolean",
-            "default": true
+            "default": true,
+            "description": "总结内容默认使用 Spoiler 隐藏"
       },
       {
             "key": "reply_mode",
             "label": "回复模式",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "启用后自动回复被总结的消息"
       },
       {
             "key": "max_output_length",
             "label": "最大输出长度",
             "type": "number",
             "min": 100,
-            "max": 50000
+            "max": 50000,
+            "description": "总结结果的最大字符数"
       },
       {
             "key": "link_preview",
             "label": "链接预览",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "总结结果中是否显示链接预览"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
