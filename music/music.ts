@@ -2334,13 +2334,20 @@ ${apiKey ? "✅" : "⚪"} <b>AI搜索:</b> ${apiKey ? "已启用" : "未配置"}
                         "value": "netease",
                         "label": "网易云"
                   }
-            ]
+            ],
+            "description": "默认搜索的音源"
       },
       {
             "key": "br",
             "label": "音质",
-            "type": "string",
-            "default": "999"
+            "type": "select",
+            "options": [
+                  { "value": "128", "label": "128kbps (低)" },
+                  { "value": "320", "label": "320kbps (标准)" },
+                  { "value": "999", "label": "无损/最高" }
+            ],
+            "default": "999",
+            "description": "音频比特率"
       },
       {
             "key": "maxResults",
@@ -2348,7 +2355,8 @@ ${apiKey ? "✅" : "⚪"} <b>AI搜索:</b> ${apiKey ? "已启用" : "未配置"}
             "type": "number",
             "min": 10,
             "max": 100,
-            "default": 30
+            "default": 30,
+            "description": "单次搜索返回的最大结果数"
       },
       {
             "key": "maxUploadBytes",
@@ -2356,7 +2364,8 @@ ${apiKey ? "✅" : "⚪"} <b>AI搜索:</b> ${apiKey ? "已启用" : "未配置"}
             "type": "number",
             "min": 1048576,
             "max": 1073741824,
-            "default": 104857600
+            "default": 104857600,
+            "description": "Telegram 文件上传限制，默认 100MB"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
