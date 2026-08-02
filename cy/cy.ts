@@ -524,7 +524,7 @@ class CyPlugin extends Plugin {
             "key": "times",
             "label": "执行时间列表",
             "type": "json",
-            "description": "JSON 数组，如 ["08:00", "20:00"]"
+            "description": "JSON 数组，如 [\"08:00\", \"20:00\"]"
       },
       {
             "key": "limit",
