@@ -1764,7 +1764,8 @@ class LotteryPlugin extends Plugin {
             "type": "number",
             "min": 2,
             "max": 100,
-            "default": 2
+            "default": 2,
+            "description": "抽奖最少需要的人数"
       },
       {
             "key": "maxUsers",
@@ -1772,7 +1773,8 @@ class LotteryPlugin extends Plugin {
             "type": "number",
             "min": 2,
             "max": 1000,
-            "default": 100
+            "default": 100,
+            "description": "抽奖最多容纳的人数"
       },
       {
             "key": "timeout",
@@ -1780,7 +1782,8 @@ class LotteryPlugin extends Plugin {
             "type": "number",
             "min": 10,
             "max": 600,
-            "default": 60
+            "default": 60,
+            "description": "等待用户参与的截止时间"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
