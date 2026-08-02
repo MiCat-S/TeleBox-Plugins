@@ -1006,17 +1006,22 @@ class DeepWikiPlugin extends Plugin {
             "key": "apiKey",
             "label": "API 密钥",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "DeepWiki API 密钥"
       },
       {
             "key": "baseUrl",
             "label": "API 地址",
-            "type": "string"
+            "type": "string",
+            "placeholder": "https://api.deepwiki.com",
+            "description": "DeepWiki API 地址"
       },
       {
             "key": "defaultModel",
             "label": "默认模型",
-            "type": "string"
+            "type": "string",
+            "placeholder": "gpt-4o",
+            "description": "默认使用的模型名称"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
