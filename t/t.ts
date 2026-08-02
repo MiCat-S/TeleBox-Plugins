@@ -112,17 +112,22 @@ function getInitialRoles(): Record<string, string> {
             "key": "apiKey",
             "label": "API 密钥",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "TTS 服务 API 密钥"
       },
       {
             "key": "defaultRole",
             "label": "默认角色",
-            "type": "string"
+            "type": "string",
+            "placeholder": "如: XiaoMo",
+            "description": "默认语音角色名称"
       },
       {
             "key": "defaultRoleId",
             "label": "默认角色 ID",
-            "type": "string"
+            "type": "string",
+            "placeholder": "如: 1001",
+            "description": "默认语音角色 ID"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
