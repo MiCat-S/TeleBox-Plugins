@@ -66,7 +66,8 @@ class TeletypePlugin extends Plugin {
       {
             "key": "enabled",
             "label": "启用",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "开启 Teletype 消息同步功能"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
