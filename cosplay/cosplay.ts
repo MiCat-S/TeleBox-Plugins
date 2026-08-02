@@ -1,5 +1,5 @@
 // Cosplay Plugin - 从 cosplaytele.com 获取随机cosplay图片
-import { Plugin } from "@utils/pluginBase";
+import { Plugin, type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { Api } from "teleproto";
 import { CustomFile } from "teleproto/client/uploads";
 import { getPrefixes } from "@utils/pluginManager";
