@@ -100,7 +100,8 @@ class PicToStickerPlugin extends Plugin {
             "key": "defaultEmoji",
             "label": "默认表情",
             "type": "string",
-            "default": "🤔"
+            "default": "🤔",
+            "description": "贴纸默认使用的表情"
       },
       {
             "key": "quality",
@@ -108,7 +109,8 @@ class PicToStickerPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 100,
-            "default": 80
+            "default": 80,
+            "description": "图片质量，值越高画质越好"
       },
       {
             "key": "format",
@@ -123,7 +125,8 @@ class PicToStickerPlugin extends Plugin {
                         "value": "png",
                         "label": "PNG"
                   }
-            ]
+            ],
+            "description": "贴纸输出格式"
       },
       {
             "key": "size",
@@ -131,18 +134,21 @@ class PicToStickerPlugin extends Plugin {
             "type": "number",
             "min": 100,
             "max": 512,
-            "default": 512
+            "default": 512,
+            "description": "贴纸边长（像素）"
       },
       {
             "key": "background",
             "label": "背景色",
             "type": "string",
-            "default": "#00000000"
+            "default": "#00000000",
+            "description": "背景颜色，格式 #RRGGBBAA，透明=#00000000"
       },
       {
             "key": "autoDelete",
             "label": "自动删除原图",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "转换后自动删除原始图片"
       },
       {
             "key": "compressionLevel",
@@ -150,7 +156,8 @@ class PicToStickerPlugin extends Plugin {
             "type": "number",
             "min": 0,
             "max": 9,
-            "default": 6
+            "default": 6,
+            "description": "PNG 压缩级别，0=无压缩，9=最大压缩"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
