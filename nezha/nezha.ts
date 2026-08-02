@@ -804,23 +804,27 @@ class NeZhaPlugin extends Plugin {
       {
             "key": "url",
             "label": "面板地址",
-            "type": "string"
+            "type": "string",
+            "description": "哪吒监控面板地址"
       },
       {
             "key": "secret",
             "label": "API 密钥",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "哪吒监控 API 访问密钥"
       },
       {
             "key": "configPath",
             "label": "配置文件路径",
-            "type": "string"
+            "type": "string",
+            "description": "哪吒监控 YAML 配置文件路径"
       },
       {
             "key": "serviceMonitor",
             "label": "服务监控",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "开启服务端口监控"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
