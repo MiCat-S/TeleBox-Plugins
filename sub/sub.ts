@@ -562,13 +562,15 @@ echo "后端: http://\$IP:3001/\$SECRET"`;
       {
             "key": "url",
             "label": "面板地址",
-            "type": "string"
+            "type": "string",
+            "description": "SubStore 面板地址，如 http://192.168.1.100:3001"
       },
       {
             "key": "token",
             "label": "Token",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "SubStore API 访问令牌"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
