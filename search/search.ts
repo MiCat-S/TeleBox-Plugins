@@ -743,7 +743,7 @@ class ChannelSearchPlugin extends Plugin {
             "key": "adFilters",
             "label": "广告过滤词列表",
             "type": "json",
-            "description": "JSON 数组，如 ["广告", "推广"]"
+            "description": "JSON 数组，如 [\"广告\", \"推广\"]"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
