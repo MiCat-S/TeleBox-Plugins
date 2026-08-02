@@ -359,7 +359,8 @@ class CheckApiPlugin extends Plugin{name="checkapi";description=
                 "type": "number",
                 "min": 1,
                 "max": 1440,
-                "default": 60
+                "default": 60,
+                "description": "API 健康检查的间隔时间"
           },
           {
                 "key": "timeout",
@@ -367,7 +368,8 @@ class CheckApiPlugin extends Plugin{name="checkapi";description=
                 "type": "number",
                 "min": 1,
                 "max": 60,
-                "default": 10
+                "default": 10,
+                "description": "单个 API 请求的超时时间"
           }
     ],
         getValues: async (): Promise<Record<string, unknown>> => {
