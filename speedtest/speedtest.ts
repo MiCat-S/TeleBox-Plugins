@@ -1519,7 +1519,8 @@ class SpeednextPlugin extends Plugin {
       {
             "key": "default_server_id",
             "label": "默认服务器 ID",
-            "type": "number"
+            "type": "number",
+            "description": "Speedtest 默认使用的测试服务器 ID，留空=自动选择"
       },
       {
             "key": "preferred_type",
@@ -1534,7 +1535,8 @@ class SpeednextPlugin extends Plugin {
                         "value": "photo",
                         "label": "图片"
                   }
-            ]
+            ],
+            "description": "测速结果的首选展示方式"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
