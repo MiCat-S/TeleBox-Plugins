@@ -511,17 +511,20 @@ class CyPlugin extends Plugin {
       {
             "key": "enabled",
             "label": "启用定时",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "开启后按设定时间自动生成词云"
       },
       {
             "key": "target",
             "label": "目标群组/频道",
-            "type": "string"
+            "type": "string",
+            "description": "词云生成的群组或频道 ID"
       },
       {
             "key": "times",
             "label": "执行时间列表",
-            "type": "json"
+            "type": "json",
+            "description": "JSON 数组，如 ["08:00", "20:00"]"
       },
       {
             "key": "limit",
@@ -529,7 +532,8 @@ class CyPlugin extends Plugin {
             "type": "number",
             "min": 50,
             "max": 2000,
-            "default": 500
+            "default": 500,
+            "description": "词云显示的最大词数"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
