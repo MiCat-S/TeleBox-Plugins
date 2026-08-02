@@ -453,13 +453,26 @@ seconds, minutes, hours, date, times`;
       {
             "key": "timezone",
             "label": "时区",
-            "type": "string",
+            "type": "select",
+            "options": [
+                  { "value": "Asia/Shanghai", "label": "中国标准时间 (UTC+8)" },
+                  { "value": "Asia/Tokyo", "label": "日本标准时间 (UTC+9)" },
+                  { "value": "Asia/Singapore", "label": "新加坡时间 (UTC+8)" },
+                  { "value": "America/New_York", "label": "东部时间 (UTC-5)" },
+                  { "value": "America/Los_Angeles", "label": "太平洋时间 (UTC-8)" },
+                  { "value": "Europe/London", "label": "伦敦时间 (UTC+0)" },
+                  { "value": "Europe/Berlin", "label": "柏林时间 (UTC+1)" },
+                  { "value": "Australia/Sydney", "label": "悉尼时间 (UTC+10)" },
+                  { "value": "Pacific/Auckland", "label": "奥克兰时间 (UTC+12)" },
+                  { "value": "UTC", "label": "协调世界时 (UTC+0)" }
+            ],
             "default": "Asia/Shanghai"
       },
       {
             "key": "defaultChat",
             "label": "默认发送 Chat ID",
-            "type": "string"
+            "type": "string",
+            "description": "默认发送目标 Chat ID，如 @username 或 -100xxxxxx"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
