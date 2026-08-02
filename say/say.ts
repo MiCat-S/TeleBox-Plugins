@@ -1454,7 +1454,8 @@ class SayPlugin extends Plugin {
                         "value": "fish",
                         "label": "Fish Audio"
                   }
-            ]
+            ],
+            "description": "TTS 语音合成的默认提供商"
       },
       {
             "key": "speed",
@@ -1462,17 +1463,20 @@ class SayPlugin extends Plugin {
             "type": "number",
             "min": 0.5,
             "max": 2.0,
-            "default": 1.0
+            "default": 1.0,
+            "description": "语音合成语速，0.5=慢速，2.0=快速"
       },
       {
             "key": "style",
             "label": "风格指令",
-            "type": "string"
+            "type": "string",
+            "description": "语音合成风格（如 safe, cheerful）"
       },
       {
             "key": "translate",
             "label": "追加译文",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "语音后追加文字译文"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
