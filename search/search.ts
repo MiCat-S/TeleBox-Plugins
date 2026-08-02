@@ -735,12 +735,15 @@ class ChannelSearchPlugin extends Plugin {
       {
             "key": "defaultChannel",
             "label": "默认频道",
-            "type": "string"
+            "type": "string",
+            "placeholder": "@channel 或 -100xxxxxx",
+            "description": "搜索的默认目标频道"
       },
       {
             "key": "adFilters",
             "label": "广告过滤词列表",
-            "type": "json"
+            "type": "json",
+            "description": "JSON 数组，如 ["广告", "推广"]"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
