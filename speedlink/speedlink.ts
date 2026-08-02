@@ -1038,12 +1038,15 @@ class SpeedlinkPlugin extends Plugin {
       {
             "key": "name",
             "label": "服务器名称",
-            "type": "string"
+            "type": "string",
+            "description": "Speedlink 服务器名称标识"
       },
       {
             "key": "host",
             "label": "主机地址",
-            "type": "string"
+            "type": "string",
+            "placeholder": "192.168.1.100",
+            "description": "Speedlink 服务器地址"
       },
       {
             "key": "port",
@@ -1051,12 +1054,14 @@ class SpeedlinkPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 65535,
-            "default": 22
+            "default": 22,
+            "description": "SSH 连接端口"
       },
       {
             "key": "username",
             "label": "用户名",
-            "type": "string"
+            "type": "string",
+            "description": "SSH 登录用户名"
       },
       {
             "key": "auth_method",
@@ -1071,13 +1076,15 @@ class SpeedlinkPlugin extends Plugin {
                         "value": "key",
                         "label": "密钥"
                   }
-            ]
+            ],
+            "description": "SSH 认证方式"
       },
       {
             "key": "credentials",
             "label": "凭据",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "密码或密钥内容"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
