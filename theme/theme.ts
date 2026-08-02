@@ -3287,6 +3287,16 @@ class ThemePlugin extends Plugin {
 
   /** In-flight addtheme slug → promise (dedupe concurrent link fetches) */
   private readonly inflightLinks = new Map<string, Promise<void>>();
+  /** slug → base64 image */
+  private readonly wallpaperSlugCache = new Map<string, string>();
+  /** contentHash → slug (reverse lookup without O(n) buffer equals) */
+  private readonly wallpaperHashToSlug = new Map<string, string>();
+
+  cleanup(): void {
+    this.inflightLinks.clear();
+    this.wallpaperSlugCache.clear();
+    this.wallpaperHashToSlug.clear();
+  }
 
   async handleCmd(msg: Api.Message): Promise<void> {
     const parts = (msg.message ?? "").trim().split(/\s+/).slice(1);
@@ -3358,6 +3368,10 @@ class ThemePlugin extends Plugin {
 
   listenMessageHandler = async (msg: Api.Message): Promise<void> => {
     try {
+      // Guard: only process our own messages (outgoing or Saved Messages)
+      // msg.edit() requires MESSAGE_AUTHOR_REQUIRED — we can't edit others' messages
+      if (!msg.out && !(msg as any).savedPeerId) return;
+
       const text = msg.message?.trim();
 
       // t.me/addtheme link in any message
@@ -3425,10 +3439,6 @@ class ThemePlugin extends Plugin {
   // ── Download a raw TL document correctly ────────────────────────────
   // teleproto downloadFile needs InputDocumentFileLocation, not InputDocument
   // Keep document ids, access hashes, and sizes as BigInteger values.
-  /** slug → base64 image */
-  private readonly wallpaperSlugCache = new Map<string, string>();
-  /** contentHash → slug (reverse lookup without O(n) buffer equals) */
-  private readonly wallpaperHashToSlug = new Map<string, string>();
 
   private cacheWallpaper(slug: string, img: Buffer): void {
     const b64 = img.toString("base64");
