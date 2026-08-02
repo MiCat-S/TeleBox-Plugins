@@ -861,7 +861,8 @@ class TmpAdminPlugin extends Plugin {
       {
             "key": "enabled",
             "label": "启用",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "开启临时管理员功能"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
