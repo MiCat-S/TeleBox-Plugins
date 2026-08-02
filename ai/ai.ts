@@ -5160,56 +5160,67 @@ class AIPlugin extends Plugin {
         key: "currentChatTag",
         label: "当前聊天Tag",
         type: "string",
+        description: "聊天服务的提供商标签"
       },
       {
         key: "currentChatModel",
         label: "当前聊天模型",
         type: "string",
+        description: "聊天使用的模型名称"
       },
       {
         key: "currentSearchTag",
         label: "当前搜索Tag",
         type: "string",
+        description: "搜索服务的提供商标签"
       },
       {
         key: "currentSearchModel",
         label: "当前搜索模型",
         type: "string",
+        description: "搜索使用的模型名称"
       },
       {
         key: "currentImageTag",
         label: "当前图片Tag",
         type: "string",
+        description: "图片生成服务的提供商标签"
       },
       {
         key: "currentImageModel",
         label: "当前图片模型",
         type: "string",
+        description: "图片生成使用的模型名称"
       },
       {
         key: "currentVideoTag",
         label: "当前视频Tag",
         type: "string",
+        description: "视频生成服务的提供商标签"
       },
       {
         key: "currentVideoModel",
         label: "当前视频模型",
         type: "string",
+        description: "视频生成使用的模型名称"
       },
       {
         key: "imagePreview",
         label: "图片预览",
         type: "boolean",
+        description: "是否在聊天中显示图片预览"
       },
       {
         key: "videoPreview",
         label: "视频预览",
         type: "boolean",
+        description: "是否在聊天中显示视频预览"
       },
       {
         key: "videoAudio",
         label: "视频音频",
         type: "boolean",
+        description: "是否保留视频的音频轨道"
       },
       {
         key: "videoDuration",
@@ -5218,16 +5229,19 @@ class AIPlugin extends Plugin {
         min: 1,
         max: 600,
         default: 30,
+        description: "生成视频的最大时长"
       },
       {
         key: "prompt",
         label: "系统提示词",
         type: "textarea",
+        description: "AI 对话的系统提示词"
       },
       {
         key: "collapse",
         label: "折叠输出",
         type: "boolean",
+        description: "启用后输出内容折叠显示"
       },
       {
         key: "timeout",
@@ -5236,17 +5250,20 @@ class AIPlugin extends Plugin {
         min: 10,
         max: 600,
         default: 120,
+        description: "AI 请求超时时间"
       },
       {
         key: "telegraphToken",
         label: "Telegraph Token",
         type: "password",
         secret: true,
+        description: "Telegraph 访问令牌，用于创建长文页面"
       },
       {
         key: "telegraph.enabled",
         label: "Telegraph 发布",
         type: "boolean",
+        description: "超过长度时自动发布到 Telegraph"
       },
       {
         key: "telegraph.limit",
@@ -5255,6 +5272,7 @@ class AIPlugin extends Plugin {
         min: 1000,
         max: 50000,
         default: 10000,
+        description: "超过此字符数自动发布到 Telegraph"
       },
     ],
     getValues: async (): Promise<Record<string, unknown>> => {
