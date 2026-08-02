@@ -2500,12 +2500,14 @@ class PMCaptchaPlugin extends Plugin {
       {
             "key": "plugin_enabled",
             "label": "启用插件",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否启用私聊验证码插件"
       },
       {
             "key": "captcha_enabled",
             "label": "启用验证码",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "新用户私聊时触发验证码"
       },
       {
             "key": "captcha_mode",
@@ -2528,7 +2530,8 @@ class PMCaptchaPlugin extends Plugin {
                         "value": "img_mixed",
                         "label": "图片字母数字混合"
                   }
-            ]
+            ],
+            "description": "验证码的生成方式"
       },
       {
             "key": "captcha_timeout",
@@ -2536,7 +2539,8 @@ class PMCaptchaPlugin extends Plugin {
             "type": "number",
             "min": 10,
             "max": 300,
-            "default": 30
+            "default": 30,
+            "description": "验证码过期时间"
       },
       {
             "key": "captcha_max_tries",
@@ -2544,18 +2548,21 @@ class PMCaptchaPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 10,
-            "default": 3
+            "default": 3,
+            "description": "验证码允许的最大尝试次数"
       },
       {
             "key": "captcha_text_keyword",
             "label": "文字验证关键词",
             "type": "string",
-            "default": "我同意"
+            "default": "我同意",
+            "description": "文字模式下的验证关键词"
       },
       {
             "key": "captcha_prompt",
             "label": "自定义提示",
-            "type": "textarea"
+            "type": "textarea",
+            "description": "验证码触发时的自定义提示消息"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
