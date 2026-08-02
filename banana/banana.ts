@@ -515,7 +515,8 @@ class BananaPlugin extends Plugin {
             "key": "apiKey",
             "label": "API 密钥",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "香蕉贴纸 API 密钥"
       },
       {
             "key": "maxBytes",
@@ -523,7 +524,8 @@ class BananaPlugin extends Plugin {
             "type": "number",
             "min": 1024,
             "max": 52428800,
-            "default": 10485760
+            "default": 10485760,
+            "description": "单文件大小上限，默认 10MB（10485760 字节）"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
