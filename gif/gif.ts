@@ -527,7 +527,8 @@ class GifStickerPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 50,
-            "default": 20
+            "default": 20,
+            "description": "允许转换的最大文件大小"
       },
       {
             "key": "maxDuration",
@@ -535,7 +536,8 @@ class GifStickerPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 60,
-            "default": 10
+            "default": 10,
+            "description": "视频/动图的最大时长"
       },
       {
             "key": "maxWidth",
@@ -543,7 +545,8 @@ class GifStickerPlugin extends Plugin {
             "type": "number",
             "min": 100,
             "max": 1920,
-            "default": 512
+            "default": 512,
+            "description": "输出贴纸的最大宽度"
       },
       {
             "key": "maxHeight",
@@ -551,7 +554,8 @@ class GifStickerPlugin extends Plugin {
             "type": "number",
             "min": 100,
             "max": 1920,
-            "default": 512
+            "default": 512,
+            "description": "输出贴纸的最大高度"
       },
       {
             "key": "quality",
@@ -559,23 +563,27 @@ class GifStickerPlugin extends Plugin {
             "type": "number",
             "min": 1,
             "max": 31,
-            "default": 15
+            "default": 15,
+            "description": "值越小质量越好，1=最佳"
       },
       {
             "key": "autoAddToStickerPack",
             "label": "自动加入贴纸包",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "转换后自动添加到指定贴纸包"
       },
       {
             "key": "defaultStickerPackName",
             "label": "默认贴纸包名",
-            "type": "string"
+            "type": "string",
+            "description": "自动添加时使用的贴纸包"
       },
       {
             "key": "defaultEmoji",
             "label": "默认表情",
             "type": "string",
-            "default": "😀"
+            "default": "😀",
+            "description": "贴纸默认关联的表情"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
