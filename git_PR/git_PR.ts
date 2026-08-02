@@ -197,23 +197,30 @@ class GitManagerPlugin extends Plugin {
             "key": "token",
             "label": "Access Token",
             "type": "password",
-            "secret": true
+            "secret": true,
+            "description": "GitHub/GitLab 个人访问令牌"
       },
       {
             "key": "baseUrl",
             "label": "Git 实例地址",
             "type": "string",
-            "default": "https://api.github.com"
+            "default": "https://api.github.com",
+            "placeholder": "https://api.github.com",
+            "description": "Git API 地址，GitHub 用 https://api.github.com"
       },
       {
             "key": "defaultOwner",
             "label": "默认仓库所有者",
-            "type": "string"
+            "type": "string",
+            "placeholder": "用户名或组织名",
+            "description": "默认的仓库所有者"
       },
       {
             "key": "defaultRepo",
             "label": "默认仓库名",
-            "type": "string"
+            "type": "string",
+            "placeholder": "仓库名称",
+            "description": "默认的仓库名称"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
