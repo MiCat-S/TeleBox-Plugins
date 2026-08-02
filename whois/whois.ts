@@ -542,7 +542,8 @@ class WhoisPlugin extends Plugin {
             "type": "number",
             "min": 5,
             "max": 60,
-            "default": 15
+            "default": 15,
+            "description": "域名查询超时时间"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
