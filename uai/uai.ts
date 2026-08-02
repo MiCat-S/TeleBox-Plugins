@@ -646,7 +646,8 @@ class UAIPlugin extends Plugin {
             "key": "default_provider",
             "label": "默认提供商",
             "type": "string",
-            "placeholder": "如: openai"
+            "placeholder": "如: openai",
+            "description": "默认使用的 AI 提供商"
       },
       {
             "key": "timeout",
@@ -654,12 +655,14 @@ class UAIPlugin extends Plugin {
             "type": "number",
             "min": 10,
             "max": 300,
-            "default": 60
+            "default": 60,
+            "description": "AI 请求超时时间"
       },
       {
             "key": "collapse",
             "label": "折叠输出",
-            "type": "boolean"
+            "type": "boolean",
+            "description": "启用后输出内容折叠显示"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
