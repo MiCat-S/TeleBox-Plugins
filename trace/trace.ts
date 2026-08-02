@@ -140,7 +140,8 @@ class TracePlugin extends Plugin {
             "type": "number",
             "min": 5,
             "max": 120,
-            "default": 30
+            "default": 30,
+            "description": "每次追踪的超时时间"
       },
       {
             "key": "maxHops",
@@ -148,7 +149,8 @@ class TracePlugin extends Plugin {
             "type": "number",
             "min": 5,
             "max": 64,
-            "default": 30
+            "default": 30,
+            "description": "最大路由跳数"
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
