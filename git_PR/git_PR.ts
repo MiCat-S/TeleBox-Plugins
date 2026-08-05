@@ -4,7 +4,7 @@ import { Api } from "teleproto";
 import { getPrefixes } from "@utils/pluginManager";
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
-import { resolvePluginAssetFile } from "@utils/pathHelpers";
+import { resolvePluginAssetFile, createDirectoryInAssets } from "@utils/pathHelpers";
 import axios from "axios";
 
 import { htmlEscape } from "@utils/htmlEscape";
