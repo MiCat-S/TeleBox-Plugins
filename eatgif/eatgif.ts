@@ -17,6 +17,7 @@ import { promisify } from "util";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
+import { JSONFilePreset } from "lowdb/node";
 
 const execFileAsync = promisify(execFile);
 
@@ -397,7 +398,39 @@ class EatGifPlugin extends Plugin {
       input: iconMasked,
       top: role.y,
       left: role.x,
-  // Panel Settings Adapter
+    };
+  }
+
+  // 获取头像等数据
+  private async getSelfAvatarBuffer(
+    msg: Api.Message,
+    trigger?: Api.Message
+  ): Promise<Buffer | undefined> {
+    const meId = trigger?.fromId || msg.fromId;
+    if (!meId) {
+      return;
+    }
+    const client = msg.client;
+    if (!client) return;
+    const meEntity = trigger?.sender ?? msg.sender ?? meId;
+    return downloadAvatarDirect(client, meEntity);
+  }
+
+  private async getYouAvatarBuffer(
+    msg: Api.Message,
+    trigger?: Api.Message
+  ): Promise<Buffer | undefined> {
+    let replyTo = await safeGetReplyMessage(msg);
+    if (!replyTo) {
+      replyTo = await safeGetReplyMessage(trigger);
+    }
+    if (!replyTo?.senderId) return;
+    const client = msg.client;
+    if (!client) return;
+    return downloadAvatarDirect(client, replyTo.sender ?? replyTo.senderId);
+  }
+
+// Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "eatgif",
     title: "吃 GIF",
@@ -451,7 +484,7 @@ class EatGifPlugin extends Plugin {
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await JSONFilePreset<RoleConfig>(path.join(createDirectoryInAssets("eatgif"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
+      return db.data as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await JSONFilePreset<RoleConfig>(path.join(createDirectoryInAssets("eatgif"), "config.json"), {} as any);
@@ -459,37 +492,6 @@ class EatGifPlugin extends Plugin {
       await db.write();
     },
   };
-    };
-  }
-  // 获取头像等数据
-  private async getSelfAvatarBuffer(
-    msg: Api.Message,
-    trigger?: Api.Message
-  ): Promise<Buffer | undefined> {
-    const meId = trigger?.fromId || msg.fromId;
-    if (!meId) {
-      return;
-    }
-    const client = msg.client;
-    if (!client) return;
-    const meEntity = trigger?.sender ?? msg.sender ?? meId;
-    return downloadAvatarDirect(client, meEntity);
-  }
-
-  private async getYouAvatarBuffer(
-    msg: Api.Message,
-    trigger?: Api.Message
-  ): Promise<Buffer | undefined> {
-    let replyTo = await safeGetReplyMessage(msg);
-    if (!replyTo) {
-      replyTo = await safeGetReplyMessage(trigger);
-    }
-    if (!replyTo?.senderId) return;
-    const client = msg.client;
-    if (!client) return;
-    return downloadAvatarDirect(client, replyTo.sender ?? replyTo.senderId);
-  }
-
 }
 
 export default new EatGifPlugin();
