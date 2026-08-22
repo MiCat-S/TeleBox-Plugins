@@ -572,15 +572,17 @@ async function adaptiveBatchDelete(
   let deletedCount = 0;
   let failedCount = 0;
   let currentBatchSize: number = CONFIG.BATCH_SIZE;
+  let i = 0;
 
-  for (let i = 0; i < messageIds.length; i += currentBatchSize) {
+  while (i < messageIds.length) {
     const batch = messageIds.slice(i, i + currentBatchSize);
     
     try {
       await deleteMessagesWithRetry(client, chatEntity, batch);
       deletedCount += batch.length;
+      i += batch.length;
       
-      // 成功则可以适当增加批次大小
+      // 成功则可以适当增加下一批的大小
       if (currentBatchSize < CONFIG.MAX_BATCH_SIZE) {
         currentBatchSize = Math.min(currentBatchSize + 5, CONFIG.MAX_BATCH_SIZE);
       }
@@ -591,16 +593,13 @@ async function adaptiveBatchDelete(
     } catch (error: any) {
       console.log(`[DME] 批次删除失败，减少批次大小:`, error.message);
       
-      // 失败则减少批次大小
-      currentBatchSize = Math.max(Math.floor(currentBatchSize / 2), CONFIG.MIN_BATCH_SIZE);
-      
-      if (currentBatchSize <= CONFIG.MIN_BATCH_SIZE && batch.length === 1) {
-        // 单条消息删除失败，跳过
+      // 失败时继续拆小，直到单条定位并跳过无法删除的消息
+      if (batch.length === 1) {
         failedCount += 1;
         console.log(`[DME] 跳过无法删除的消息: ${batch[0]}`);
+        i += 1;
       } else {
-        // 重新尝试当前批次（使用更小的批次大小）
-        i -= batch.length;
+        currentBatchSize = Math.max(Math.floor(batch.length / 2), 1);
       }
       
       await sleep(CONFIG.DELAYS.RETRY);
@@ -1324,13 +1323,15 @@ const dme = async (msg: Api.Message) => {
     }
 
     const requestedTotalCount = userRequestedCount;
-    const shouldRunInRounds =
-      requestedTotalCount !== CONFIG.UNLIMITED_REQUEST_COUNT &&
-      requestedTotalCount > CONFIG.MAX_SAFE_REQUEST_COUNT;
+    const effectiveRequestCount =
+      requestedTotalCount === CONFIG.UNLIMITED_REQUEST_COUNT
+        ? requestedTotalCount
+        : Math.min(requestedTotalCount, CONFIG.MAX_SAFE_REQUEST_COUNT);
 
-    if (shouldRunInRounds) {
+    if (requestedTotalCount > CONFIG.MAX_SAFE_REQUEST_COUNT) {
       console.log(
-        `[DME] 请求数量 ${requestedTotalCount} 超过单次安全上限 ${CONFIG.MAX_SAFE_REQUEST_COUNT}，将分轮执行直到达到目标或无可删消息`
+        `[DME] 请求数量 ${requestedTotalCount} 超过单次安全上限 ${CONFIG.MAX_SAFE_REQUEST_COUNT}，` +
+        `本次最多处理 ${effectiveRequestCount} 条，避免跨轮重复扫描`
       );
     }
 
@@ -1391,51 +1392,7 @@ const dme = async (msg: Api.Message) => {
             maxMessageId
           );
 
-    let result = { processedCount: 0, actualCount: 0, editedCount: 0 };
-
-    if (!shouldRunInRounds) {
-      result = await runOneRound(requestedTotalCount);
-    } else {
-      let remaining = requestedTotalCount;
-      let round = 1;
-      while (remaining > 0) {
-        const roundTarget = Math.min(remaining, CONFIG.MAX_SAFE_REQUEST_COUNT);
-        console.log(
-          `[DME] 第 ${round} 轮开始，请求 ${roundTarget} 条，剩余目标 ${remaining} 条`
-        );
-
-        const roundResult = await runOneRound(roundTarget);
-        result.processedCount += roundResult.processedCount;
-        result.actualCount += roundResult.actualCount;
-        result.editedCount += roundResult.editedCount;
-        remaining = Math.max(0, remaining - roundResult.processedCount);
-
-        console.log(
-          `[DME] 第 ${round} 轮完成，删除 ${roundResult.processedCount} 条，累计 ${result.processedCount}/${requestedTotalCount}`
-        );
-
-        if (roundResult.actualCount === 0) {
-          console.log(`[DME] 第 ${round} 轮未找到可删除消息，提前结束`);
-          break;
-        }
-
-        if (roundResult.processedCount === 0) {
-          console.log(`[DME] 第 ${round} 轮没有删除进度，提前结束避免空转`);
-          break;
-        }
-
-        if (roundResult.processedCount < roundTarget) {
-          console.log(
-            `[DME] 第 ${round} 轮已扫描结束但仅找到 ${roundResult.processedCount}/${roundTarget} 条，` +
-            `不再从最新消息重复扫描`
-          );
-          break;
-        }
-
-        await sleep(CONFIG.DELAYS.BATCH);
-        round++;
-      }
-    }
+    const result = await runOneRound(effectiveRequestCount);
 
     const duration = Math.round((Date.now() - startTime) / 1000);
     console.log(`[DME] ========== 任务完成 ==========`);
@@ -1443,7 +1400,6 @@ const dme = async (msg: Api.Message) => {
     console.log(`[DME] 处理消息: ${result.processedCount} 条`);
     console.log(`[DME] 编辑媒体: ${result.editedCount} 条`);
     if (
-      shouldRunInRounds &&
       requestedTotalCount !== CONFIG.UNLIMITED_REQUEST_COUNT &&
       result.processedCount < requestedTotalCount
     ) {
