@@ -2,7 +2,7 @@ import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@uti
 import { getPrefixes } from "@utils/pluginManager";
 import { Api } from "teleproto";
 import { JSONFilePreset } from "lowdb/node";
-import { resolvePluginAssetFile } from "@utils/pathHelpers";
+import { resolvePluginAssetFile, createDirectoryInAssets } from "@utils/pathHelpers";
 import * as path from "path";
 import dayjs from "dayjs";
 const prefixes = getPrefixes();
@@ -207,40 +207,6 @@ class GreetingPlugin extends Plugin {
 
         // 5. 处理业务逻辑
         await this.processGreeting(msg, chatId, userId, isSleep ? "sleep" : "wake");
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "goodnight",
-    title: "晚安打卡",
-    description: "晚安/早安打卡配置",
-    category: "插件配置",
-    icon: "🌙",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "enabled",
-            "label": "启用",
-            "type": "boolean",
-            "description": "开启晚安/早安打卡功能"
-      },
-      {
-            "key": "timezone",
-            "label": "时区偏移 (小时)",
-            "type": "number",
-            "min": -12,
-            "max": 14,
-            "default": 8,
-            "description": "UTC 时区偏移，北京时间=8"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<GroupData>(path.join(createDirectoryInAssets("goodnight"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<GroupData>(path.join(createDirectoryInAssets("goodnight"), "config.json"), {} as any);
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
     };
 
     // 辅助函数：检查关键词（完全匹配）
@@ -326,6 +292,41 @@ class GreetingPlugin extends Plugin {
             console.error("回复消息失败", e);
         }
     }
+
+// Panel Settings Adapter
+    panelAdapter: PanelSettingsAdapter = {
+      id: "goodnight",
+      title: "晚安打卡",
+      description: "晚安/早安打卡配置",
+      category: "插件配置",
+      icon: "🌙",
+      getSchema: (): PanelSettingField[] => [
+        {
+              "key": "enabled",
+              "label": "启用",
+              "type": "boolean",
+              "description": "开启晚安/早安打卡功能"
+        },
+        {
+              "key": "timezone",
+              "label": "时区偏移 (小时)",
+              "type": "number",
+              "min": -12,
+              "max": 14,
+              "default": 8,
+              "description": "UTC 时区偏移，北京时间=8"
+        }
+  ],
+      getValues: async (): Promise<Record<string, unknown>> => {
+        const db = await JSONFilePreset<GroupData>(path.join(createDirectoryInAssets("goodnight"), "config.json"), {} as any);
+        return db.data as unknown as Record<string, unknown>;
+      },
+      setValues: async (patch: Record<string, unknown>): Promise<void> => {
+        const db = await JSONFilePreset<GroupData>(path.join(createDirectoryInAssets("goodnight"), "config.json"), {} as any);
+        Object.assign(db.data, patch);
+        await db.write();
+      },
+    };
 }
 
 export default new GreetingPlugin();

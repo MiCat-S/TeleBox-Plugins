@@ -1,4 +1,4 @@
-import { Plugin, type PluginRuntimeContext , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
+import { Plugin , type PluginRuntimeContext, type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { Api } from "teleproto";
 import { getPrefixes } from "@utils/pluginManager";
 import { JSONFilePreset } from "lowdb/node";
@@ -994,6 +994,12 @@ class DeepWikiPlugin extends Plugin {
         await MessageSender.sendOrEdit(original, this.formatError(err), "html");
       }
     },
+  };
+
+  async onUnload(): Promise<void> {
+    await this.cleanup();
+  }
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "deepwiki",
@@ -1034,11 +1040,6 @@ class DeepWikiPlugin extends Plugin {
       await db.write();
     },
   };
-  };
-
-  async onUnload(): Promise<void> {
-    await this.cleanup();
-  }
 }
 
 export default new DeepWikiPlugin();

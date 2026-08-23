@@ -527,6 +527,8 @@ class ParseHubPlugin extends Plugin {
         await msg.delete();
       } catch {}
     },
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "parsehub",
@@ -583,7 +585,6 @@ class ParseHubPlugin extends Plugin {
       initState = state;
       ignoredUpToId = state.ignoredUpToId || 0;
     },
-  };
   };
 }
 

@@ -2111,6 +2111,8 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
         await msg.edit({ text: `❌ 错误: ${e?.message || e}` });
       }
     },
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "sum",
@@ -2179,7 +2181,6 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
       Object.assign(db.data.aiConfig, patch);
       await db.write();
     },
-  };
   };
 }
 

@@ -411,7 +411,7 @@ class BGPPlugin extends Plugin {
                                 adaptiveFiltering: true,
                                 palette: true,
                             })
-                            .sharpen(1.2, 1.0, 2.0)
+                            .sharpen({ sigma: 1.2, m1: 1.0, m2: 2.0 })
                             .toFile(pngPath);
 
                         try {

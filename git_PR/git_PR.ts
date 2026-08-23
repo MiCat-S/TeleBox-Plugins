@@ -185,54 +185,6 @@ class GitManagerPlugin extends Plugin {
         await msg.edit({ text: `❌ <b>操作失败:</b> ${htmlEscape(error.message)}`, parseMode: "html" });
       }
     },
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "git_PR",
-    title: "Git PR 管理",
-    description: "GitHub/GitLab PR 管理配置",
-    category: "插件配置",
-    icon: "🔀",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "token",
-            "label": "Access Token",
-            "type": "password",
-            "secret": true,
-            "description": "GitHub/GitLab 个人访问令牌"
-      },
-      {
-            "key": "baseUrl",
-            "label": "Git 实例地址",
-            "type": "string",
-            "default": "https://api.github.com",
-            "placeholder": "https://api.github.com",
-            "description": "Git API 地址，GitHub 用 https://api.github.com"
-      },
-      {
-            "key": "defaultOwner",
-            "label": "默认仓库所有者",
-            "type": "string",
-            "placeholder": "用户名或组织名",
-            "description": "默认的仓库所有者"
-      },
-      {
-            "key": "defaultRepo",
-            "label": "默认仓库名",
-            "type": "string",
-            "placeholder": "仓库名称",
-            "description": "默认的仓库名称"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("git_PR"), "config.json"), DEFAULT_CONFIG);
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("git_PR"), "config.json"), DEFAULT_CONFIG);
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
   };
 
   private async handleLogin(msg: Api.Message, args: string[]) {
@@ -412,6 +364,55 @@ class GitManagerPlugin extends Plugin {
     report += `\n🎉 <b>操作完成:</b> ${successCount}个成功, ${failCount}个失败。`;
     await sendLongMessage(msg, report);
   }
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "git_PR",
+    title: "Git PR 管理",
+    description: "GitHub/GitLab PR 管理配置",
+    category: "插件配置",
+    icon: "🔀",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "token",
+            "label": "Access Token",
+            "type": "password",
+            "secret": true,
+            "description": "GitHub/GitLab 个人访问令牌"
+      },
+      {
+            "key": "baseUrl",
+            "label": "Git 实例地址",
+            "type": "string",
+            "default": "https://api.github.com",
+            "placeholder": "https://api.github.com",
+            "description": "Git API 地址，GitHub 用 https://api.github.com"
+      },
+      {
+            "key": "defaultOwner",
+            "label": "默认仓库所有者",
+            "type": "string",
+            "placeholder": "用户名或组织名",
+            "description": "默认的仓库所有者"
+      },
+      {
+            "key": "defaultRepo",
+            "label": "默认仓库名",
+            "type": "string",
+            "placeholder": "仓库名称",
+            "description": "默认的仓库名称"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("git_PR"), "config.json"), DEFAULT_CONFIG);
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("git_PR"), "config.json"), DEFAULT_CONFIG);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 }
 
 export default new GitManagerPlugin();

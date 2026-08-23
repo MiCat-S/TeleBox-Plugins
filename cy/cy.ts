@@ -1,3 +1,4 @@
+import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
@@ -500,6 +501,8 @@ class CyPlugin extends Plugin {
       }
       await msg.safeDelete?.({ revoke: true } as any);
     },
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "cy",
@@ -538,14 +541,13 @@ class CyPlugin extends Plugin {
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await JSONFilePreset<CyScheduleConfig>(path.join(__dirname, "cy_schedule.json"), DEFAULT_SCHEDULE);
-      return db.data as Record<string, unknown>;
+      return db.data as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await JSONFilePreset<CyScheduleConfig>(path.join(__dirname, "cy_schedule.json"), DEFAULT_SCHEDULE);
       Object.assign(db.data, patch);
       await db.write();
     },
-  };
   };
 }
 

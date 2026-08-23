@@ -1,3 +1,4 @@
+import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { Api } from "teleproto";
 import { execSync, execFile, ChildProcess, spawn } from "child_process";
@@ -31,7 +32,7 @@ async function fillRoundedCorners(
     (() => {
       const dir = path.dirname(inputPath);
       const ext =
-        meta.format === "jpeg" || meta.format === "jpg" ? ".jpg" : ".png";
+        (meta.format as string) === "jpeg" || (meta.format as string) === "jpg" ? ".jpg" : ".png";
       const base = path.basename(inputPath, path.extname(inputPath));
       return path.join(dir, `${base}.filled${ext}`);
     })();
@@ -65,7 +66,7 @@ async function fillRoundedCorners(
 
   let composed = background.composite([{ input: innerBuf, left, top }]);
 
-  if (meta.format === "jpeg" || meta.format === "jpg") {
+  if ((meta.format as string) === "jpeg" || (meta.format as string) === "jpg") {
     composed = composed.jpeg({ quality: 95 });
   } else if (meta.format === "png" || !meta.format) {
     composed = composed.png({ compressionLevel: 9 });
@@ -1027,6 +1028,8 @@ class SpeedlinkPlugin extends Plugin {
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     speedlink: speedtest,
     sl: speedtest,
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "speedlink",
@@ -1089,14 +1092,13 @@ class SpeedlinkPlugin extends Plugin {
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key"), {} as any);
-      return db.data as Record<string, unknown>;
+      return db.data as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key"), {} as any);
       Object.assign(db.data, patch);
       await db.write();
     },
-  };
   };
 }
 

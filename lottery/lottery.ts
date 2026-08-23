@@ -1,3 +1,4 @@
+import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { getGlobalClient, getCurrentGeneration } from "@utils/runtimeManager";
 import path from "path";
@@ -1750,6 +1751,11 @@ class LotteryPlugin extends Plugin {
   
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     lottery,
+  };
+  
+  listenMessageHandler?: ((msg: Api.Message) => Promise<void>) | undefined =
+    handleEnhancedLotteryJoin;
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "lottery",
@@ -1787,19 +1793,15 @@ class LotteryPlugin extends Plugin {
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<LotteryConfig>(path.join(createDirectoryInAssets("lottery"), "config.json"), {} as any);
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("lottery"), "config.json"), {} as any);
       return db.data as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<LotteryConfig>(path.join(createDirectoryInAssets("lottery"), "config.json"), {} as any);
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("lottery"), "config.json"), {} as any);
       Object.assign(db.data, patch);
       await db.write();
     },
   };
-  };
-  
-  listenMessageHandler?: ((msg: Api.Message) => Promise<void>) | undefined =
-    handleEnhancedLotteryJoin;
 }
 
 export default new LotteryPlugin();

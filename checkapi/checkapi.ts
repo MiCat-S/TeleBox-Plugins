@@ -1,4 +1,4 @@
-import { Plugin, type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase"; import { getPrefixes } from "@utils/pluginManager"; import { Api } from "teleproto"; import * as fs from "fs/promises"; import path from "path"; import axios from "axios"; import { createDirectoryInAssets } from "@utils/pathHelpers"; import { JSONFilePreset } from "lowdb/node";  
+import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase"; import { getPrefixes } from "@utils/pluginManager"; import { Api } from "teleproto"; import * as fs from "fs/promises"; import path from "path"; import axios from "axios"; import { createDirectoryInAssets } from "@utils/pathHelpers";  
 
 const pfx = getPrefixes(); const mp = pfx[0];
 const DD = createDirectoryInAssets("checkapi"); const KF = path.join(DD, "keys.json");
@@ -68,8 +68,8 @@ function parseSmart(raw:string):{sub?:string;key?:string;url?:string;label?:stri
 }
 
 // ── Provider detection (enhanced) ──
-function dp(key: string, baseUrl?: string): PI {
-  const t = key.trim();
+function dp(key: string | undefined, baseUrl?: string): PI {
+  const t = (key ?? "").trim();
 
   // ── URL hostname detection (before key-based) ──
   if (baseUrl) {
@@ -153,7 +153,7 @@ async function ag(url:string,hdrs:Record<string,string>,tms=15000,retries=2): Pr
 async function ap(url:string,hdrs:Record<string,string>,body:unknown,tms=30000,retries=1): Promise<AR>{for(let i=0;i<=retries;i++){const s=Date.now();try{const r=await axios.post(url,body,{headers:hdrs,timeout:tms,validateStatus:()=>true});const e=Date.now()-s;const a:AR={ok:r.status>=200&&r.status<300,data:r.data,status:r.status,elapsedMs:e};const h:Record<string,string>={};for(const[k,v]of Object.entries(r.headers as Record<string,string>||{})){if(/rate.?limit|retry.?after|x-ratelimit|ratelimit|quota/i.test(k))h[k]=String(v);}if(Object.keys(h).length)a.headers=h;if(!a.ok){const d=r.data as Record<string,unknown>|undefined;a.error=d?.error&&typeof d.error==="object"?String((d.error as Record<string,unknown>).message||JSON.stringify(d.error)):`HTTP ${r.status}: ${JSON.stringify(r.data).slice(0,200)}`;}return a;}catch(e:unknown){if(i===retries)return{ok:false,error:ge(e),elapsedMs:Date.now()-s};await new Promise(r=>setTimeout(r,1000*(i+1)));}}return{ok:false,error:"retry exhausted"};}
 
 // ── Fetch models from API to pick a test model ──
-async function pickTestModel(provider:string,key:string,baseUrl:string): Promise<string>{
+async function pickTestModel(provider:string,key:string|undefined,baseUrl:string): Promise<string>{
   const info=dp(key,baseUrl);
   const hdrs:Record<string,string>=info.authHeader?{Authorization:info.authHeader}:{};
   const url=provider==="gemini"?`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
@@ -174,7 +174,7 @@ async function pickTestModel(provider:string,key:string,baseUrl:string): Promise
   }catch{/* fallback */}
   return "";
 }
-async function ct(provider:string,key:string,baseUrl:string,askText?:string): Promise<CTR>{const q=askText||"say ok";const info=dp(key,baseUrl);
+async function ct(provider:string,key:string|undefined,baseUrl:string,askText?:string): Promise<CTR>{const q=askText||"say ok";const info=dp(key,baseUrl);
   if(provider==="gemini"){const gemBase=info.baseUrl||"https://generativelanguage.googleapis.com";const url=gemBase.includes("v1beta")?`${gemBase}/models/gemini-2.5-flash:generateContent`:`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;const params=gemBase.includes("generativelanguage")?`?key=${key}`:"";const r=await ap(`${url}${params}`,{"content-type":"application/json"},{contents:[{parts:[{text:q}]}],generationConfig:{maxOutputTokens:50,temperature:0}},20000);if(r.ok){const d=r.data as Record<string,unknown>|undefined;const cs=d?.candidates as Array<Record<string,unknown>>|undefined;const ct=cs?.[0]?.content as Record<string,unknown>|undefined;const ps=ct?.parts as Array<Record<string,string>>|undefined;const tx=ps?.map(p=>p.text||"").join("")||"";const u=d?.usageMetadata as Record<string,number>|undefined;return{ok:true,text:tx,model:"gemini-2.5-flash",usage:u?{prompt:u.promptTokenCount||0,completion:u.candidatesTokenCount||0,total:u.totalTokenCount||0}:undefined,elapsedMs:r.elapsedMs,headers:r.headers};}return{ok:false,error:r.error,elapsedMs:r.elapsedMs};}
   if(provider==="anthropic"){const r=await ap(info.chatUrl,info.headers,{model:"claude-3.5-haiku-20241022",max_tokens:50,messages:[{role:"user",content:q}]},20000);if(r.ok){const d=r.data as Record<string,unknown>|undefined;const ct=(d?.content as Array<Record<string,unknown>>|undefined)?.[0];const tx=String(ct?.text||"");const u=d?.usage as Record<string,number>|undefined;return{ok:true,text:tx,model:String(d?.model||"claude"),usage:u?{prompt:u.input_tokens||0,completion:u.output_tokens||0,total:(u.input_tokens||0)+(u.output_tokens||0)}:undefined,elapsedMs:r.elapsedMs,headers:r.headers};}return{ok:false,error:r.error,elapsedMs:r.elapsedMs};}
   let model=await pickTestModel(provider,key,baseUrl);
@@ -199,7 +199,7 @@ async function ct(provider:string,key:string,baseUrl:string,askText?:string): Pr
   if(r.ok){const d=r.data as Record<string,unknown>|undefined;const cs=d?.choices as Array<Record<string,unknown>>|undefined;const tx=String((cs?.[0]?.message as Record<string,unknown>|undefined)?.content||cs?.[0]?.text||"");const u=d?.usage as Record<string,number>|undefined;return{ok:true,text:tx.trim(),model:String(d?.model||model),usage:u?{prompt:u.prompt_tokens||0,completion:u.completion_tokens||0,total:u.total_tokens||0}:undefined,elapsedMs:r.elapsedMs,headers:r.headers};}return{ok:false,error:r.error,elapsedMs:r.elapsedMs};}
 
 // ── Balance ──
-async function cb(provider:string,key:string,baseUrl:string): Promise<string>{const info=dp(key,baseUrl);const hdrs:Record<string,string>={Authorization:`Bearer ${key}`,...(provider==="openrouter"?{"HTTP-Referer":"https://t.me/telebox_next"}:{})};const lines:string[]=[];
+async function cb(provider:string,key:string|undefined,baseUrl:string): Promise<string>{const info=dp(key,baseUrl);const hdrs:Record<string,string>={Authorization:`Bearer ${key}`,...(provider==="openrouter"?{"HTTP-Referer":"https://t.me/telebox_next"}:{})};const lines:string[]=[];
   if(provider==="openai"){
     // Subscription + usage + org info
     const sub=await ag(`${info.baseUrl}/v1/dashboard/billing/subscription`,hdrs,10000);
@@ -220,7 +220,7 @@ async function cb(provider:string,key:string,baseUrl:string): Promise<string>{co
     return lines.join("\n");
   }
   if(provider==="deepseek"){const r=await ag(`${info.baseUrl.replace(/\/v\d.*$/,"")}/user/balance`,hdrs,10000);if(r.ok){const d=r.data as Record<string,unknown>|undefined;lines.push(`✅ 可用: ${d?.is_available?"是":"否"}`);const infos=d?.balance_infos as Array<Record<string,unknown>>|undefined;if(infos)for(const bi of infos)lines.push(`💰 ${bi.currency||"余额"}: ${bi.total_balance||"?"} (已用: ${bi.topped_up_balance||"?"})`);}else if(r.status===401)return"❌ Key 无效";else return`⚠️ ${r.error||"查询失败"}`;return lines.join("\n");}
-  if(provider==="anthropic"){const r=await ap("https://api.anthropic.com/v1/messages",{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"},{model:"claude-3.5-haiku-20241022",max_tokens:1,messages:[{role:"user",content:"hi"}]},15000);if(r.status===401||r.status===403)return"❌ Key 无效";if(r.ok||r.status===429)return`✅ Key 有效 (${r.status===429?"限流":"正常"})\n💰 请前往官网查看余额`;return`⚠️ HTTP ${r.status}: ${r.error||""}`;}
+  if(provider==="anthropic"){const r=await ap("https://api.anthropic.com/v1/messages",{"x-api-key":key ?? "","anthropic-version":"2023-06-01","content-type":"application/json"},{model:"claude-3.5-haiku-20241022",max_tokens:1,messages:[{role:"user",content:"hi"}]},15000);if(r.status===401||r.status===403)return"❌ Key 无效";if(r.ok||r.status===429)return`✅ Key 有效 (${r.status===429?"限流":"正常"})\n💰 请前往官网查看余额`;return`⚠️ HTTP ${r.status}: ${r.error||""}`;}
   if(provider==="gemini"){const r=await ag(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`,{},10000);if(r.ok){const ms=(r.data as Record<string,unknown>|undefined)?.models as Array<unknown>|undefined;return`✅ Key 有效 | 📋 ${ms?.length??0} 个模型\n💰 请在控制台查看额度`;}if(r.status===400&&JSON.stringify(r.data||"").includes("API_KEY_INVALID"))return"❌ Key 无效";return`⚠️ HTTP ${r.status}: ${htmlEscape(r.error||"可能有效")}`;}
   if(provider==="xai"){const r=await ag(`${info.baseUrl}/v1/models`,hdrs,10000);if(r.ok){const arr=Array.isArray(r.data)?r.data:(r.data as Record<string,unknown>|undefined)?.data as Array<unknown>|undefined;return`✅ Key 有效 | 📋 ${arr?.length??0} 个模型\n💰 请前往官网查看余额`;}if(r.status===401)return"❌ Key 无效";return`⚠️ HTTP ${r.status}`;}
 
@@ -243,7 +243,7 @@ async function cb(provider:string,key:string,baseUrl:string): Promise<string>{co
 }
 
 // ── Model list (all models in one blockquote with pagination) ──
-async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
+async function lmf(provider:string,key:string|undefined,baseUrl:string): Promise<string>{
   const info=dp(key,baseUrl);
   const hdrs:Record<string,string>=info.authHeader?{Authorization:info.authHeader}:{};
   const url=provider==="gemini"?`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
@@ -251,7 +251,7 @@ async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
     :info.modelsUrl||`${info.baseUrl}/v1/models`;
 
   const r=await ag(url,provider==="anthropic"?info.headers:hdrs,12000);
-  if(!r.ok)return`❌ 获取失败：${htmlEscape(r.error)}`;
+  if(!r.ok)return`❌ 获取失败：${htmlEscape(r.error ?? "unknown")}`;
   let models:Array<Record<string,unknown>>=[];
   if(provider==="gemini"){models=(r.data as Record<string,unknown>|undefined)?.models as Array<Record<string,unknown>>||[];}
   else if(provider==="ollama"){models=((r.data as Record<string,unknown>|undefined)?.models as Array<Record<string,unknown>>||[]).map((m:Record<string,unknown>)=>({id:String(m.name||"").replace(/:latest$/,""),owned_by:"ollama"}));}
@@ -290,21 +290,21 @@ async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
 }
 
 // ── Full check ──
-async function fcv2(provider:string,key:string,baseUrl:string): Promise<string[]>{
+async function fcv2(provider:string,key:string|undefined,baseUrl:string): Promise<string[]>{
   const rs:string[]=[];const info=dp(key,baseUrl);
   rs.push(`🔍 <b>${htmlEscape(info.displayName)}</b> (${info.provider}, ${info.confidence})`);
-  rs.push(`🔑 ${mk(key)}`);
+  rs.push(`🔑 ${mk(key ?? "")}`);
   rs.push(`\n💰 <b>账户余额</b>：`);
   try{rs.push(await cb(provider,key,baseUrl));}catch(e:unknown){rs.push(`⚠️ ${htmlEscape(ge(e))}`);}
   rs.push(`\n💬 <b>对话测试</b>：`);
-  try{const chat=await ct(provider,key,baseUrl);if(chat.ok){rs.push(`✅ 响应: "${htmlEscape(chat.text)}" (${chat.elapsedMs}ms) | 🤖 <code>${htmlEscape(chat.model)}</code>`);if(chat.usage)rs.push(`📊 Token: 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)rs.push(fh(chat.headers));}else{rs.push(`❌ 失败: ${htmlEscape(chat.error||"无响应")}`);}}catch(e:unknown){rs.push(`⚠️ ${htmlEscape(ge(e))}`);}
+  try{const chat=await ct(provider,key,baseUrl);if(chat.ok){rs.push(`✅ 响应: "${htmlEscape(chat.text ?? "")}" (${chat.elapsedMs}ms) | 🤖 <code>${htmlEscape(chat.model ?? "")}</code>`);if(chat.usage)rs.push(`📊 Token: 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)rs.push(fh(chat.headers));}else{rs.push(`❌ 失败: ${htmlEscape(chat.error||"无响应")}`);}}catch(e:unknown){rs.push(`⚠️ ${htmlEscape(ge(e))}`);}
   rs.push(`\n📋 <b>可用模型</b>：`);
   try{rs.push(await lmf(provider,key,baseUrl));}catch(e:unknown){rs.push(`⚠️ ${htmlEscape(ge(e))}`);}
   return rs;
 }
 
 // ── Speed benchmark ──
-async function speedTest(provider:string,key:string,baseUrl:string): Promise<string[]>{
+async function speedTest(provider:string,key:string|undefined,baseUrl:string): Promise<string[]>{
   const models:Record<string,string[]>={openai:["gpt-4.1-mini","gpt-4.1-nano","gpt-4o-mini"],groq:["llama-3.3-70b-versatile","mixtral-8x7b-32768","gemma2-9b-it"],deepseek:["deepseek-chat","deepseek-reasoner"],openrouter:["openai/gpt-4.1-mini","anthropic/claude-3.5-haiku","google/gemini-2.5-flash"],together:["meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8","Qwen/Qwen3-235B-A22B"],fireworks:["accounts/fireworks/models/llama-v3p3-70b-instruct","accounts/fireworks/models/deepseek-v3"],mistral:["mistral-small-2506","codestral-2501"],xai:["grok-3-mini","grok-2-latest"],perplexity:["sonar-reasoning","sonar-pro"],siliconflow:["Qwen/Qwen3-8B","deepseek-ai/DeepSeek-V3"],deepinfra:["meta-llama/Llama-4-Maverick-17B-128E-Instruct"],nvidia:["nvidia/llama-3.1-nemotron-ultra-253b-v1"],novita:["deepseek/deepseek-v3-0324","meta-llama/Llama-3.3-70B-Instruct"],cerebras:["llama3.1-8b","llama3.3-70b"],azure:["gpt-4o-mini"],vercel:["gpt-4o-mini"]};
   const testModels=models[provider]||["gpt-4o-mini"];
   const info=dp(key,baseUrl);
@@ -325,7 +325,7 @@ async function speedTest(provider:string,key:string,baseUrl:string): Promise<str
 }
 
 // ── Quick API key validation (for save) ──
-async function validateKey(provider:string,key:string,baseUrl:string): Promise<string>{
+async function validateKey(provider:string,key:string|undefined,baseUrl:string): Promise<string>{
   const info=dp(key,baseUrl);
   const hdrs:Record<string,string>=info.authHeader?{Authorization:info.authHeader}:{};
   const testUrls = provider==="gemini"?[`${info.baseUrl}/v1beta/models?key=${key}`]
@@ -344,45 +344,7 @@ async function validateKey(provider:string,key:string,baseUrl:string): Promise<s
 
 // ── Plugin ──
 class CheckApiPlugin extends Plugin{name="checkapi";description=
-`🔍 API 检测 v6\n\n传入 URL + Key 即可自动识别、查余额、测速。\n所有子命令均支持直接传入网址和密钥，无需预先保存。\n\n用法：\n<blockquote expandable><code>${mp
-    // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-        id: "checkapi",
-        title: "API 检查",
-        description: "API 可用性检查配置",
-        category: "插件配置",
-        icon: "✅",
-        getSchema: (): PanelSettingField[] => [
-          {
-                "key": "interval",
-                "label": "检查间隔 (分钟)",
-                "type": "number",
-                "min": 1,
-                "max": 1440,
-                "default": 60,
-                "description": "API 健康检查的间隔时间"
-          },
-          {
-                "key": "timeout",
-                "label": "超时 (秒)",
-                "type": "number",
-                "min": 1,
-                "max": 60,
-                "default": 10,
-                "description": "单个 API 请求的超时时间"
-          }
-    ],
-        getValues: async (): Promise<Record<string, unknown>> => {
-          const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("checkapi"), "config.json"), {} as any);
-          return db.data as Record<string, unknown>;
-        },
-        setValues: async (patch: Record<string, unknown>): Promise<void> => {
-          const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("checkapi"), "config.json"), {} as any);
-          Object.assign(db.data, patch);
-          await db.write();
-        },
-      };
-}checkapi &lt;URL&gt; &lt;key&gt;</code> — 一键检测全部\n<code>${mp}checkapi models &lt;URL&gt; &lt;key&gt;</code> — 查看模型列表\n<code>${mp}checkapi speed &lt;URL&gt; &lt;key&gt;</code> — 测试响应速度\n<code>${mp}checkapi ask &lt;URL&gt; &lt;key&gt; &lt;问题&gt;</code> — 发送对话\n<code>${mp}checkapi compare &lt;k1&gt; &lt;k2&gt;</code> — 对比两个 API\n<code>${mp}checkapi save/list/del/check</code> — 管理已保存的密钥</blockquote>\n支持 curl 命令 / 环境变量 / JSON 配置直接粘贴`;
+`🔍 API 检测 v6\n\n传入 URL + Key 即可自动识别、查余额、测速。\n所有子命令均支持直接传入网址和密钥，无需预先保存。\n\n用法：\n<blockquote expandable><code>${mp}checkapi &lt;URL&gt; &lt;key&gt;</code> — 一键检测全部\n<code>${mp}checkapi models &lt;URL&gt; &lt;key&gt;</code> — 查看模型列表\n<code>${mp}checkapi speed &lt;URL&gt; &lt;key&gt;</code> — 测试响应速度\n<code>${mp}checkapi ask &lt;URL&gt; &lt;key&gt; &lt;问题&gt;</code> — 发送对话\n<code>${mp}checkapi compare &lt;k1&gt; &lt;k2&gt;</code> — 对比两个 API\n<code>${mp}checkapi save/list/del/check</code> — 管理已保存的密钥</blockquote>\n支持 curl 命令 / 环境变量 / JSON 配置直接粘贴`;
 
 cmdHandlers:Record<string,(msg:Api.Message)=>Promise<void>>={checkapi:async(msg)=>{
   const rawFull=msg.message.slice(mp.length).trim();
@@ -411,11 +373,11 @@ cmdHandlers:Record<string,(msg:Api.Message)=>Promise<void>>={checkapi:async(msg)
 
   // ── models / ask / speed ──
   if(sub==="models"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:`❌ <code>${mp}checkapi models &lt;key|name&gt;</code>`, parseMode: "html" });return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key);await msg.edit({text:`🔍 ${htmlEscape(info.displayName)} 模型列表...`, parseMode: "html" });const result=await lmf(info.provider,key,info.baseUrl);await msg.edit({text:`${result}`, parseMode: "html" });return;}
-  if(sub==="ask"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);const qParts:string[]=[];for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!key){key=a;continue;}qParts.push(a);}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);const prompt=qParts.join(" ")||"say hello";if(!key){await msg.edit({text:`❌ <code>${mp}checkapi ask &lt;key|name&gt; &lt;问题&gt;</code>`, parseMode: "html" });return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:`💬 ${htmlEscape(info.displayName)}: "${htmlEscape(prompt)}" ...`, parseMode: "html" });const chat=await ct(info.provider,key,info.baseUrl,prompt);if(chat.ok){const l=[`💬 <b>${htmlEscape(info.displayName)}</b>`,`🤖 <code>${htmlEscape(chat.model)}</code> | 🕐 ${chat.elapsedMs}ms`,`📝 ${htmlEscape(chat.text)}`];if(chat.usage)l.push(`📊 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)l.push(fh(chat.headers));await msg.edit({text:`${l.join("\n")}`, parseMode: "html" });}else{await msg.edit({text:`❌ (${chat.elapsedMs||"?"}ms): ${htmlEscape(chat.error)}`, parseMode: "html" });}return;}
+  if(sub==="ask"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);const qParts:string[]=[];for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!key){key=a;continue;}qParts.push(a);}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);const prompt=qParts.join(" ")||"say hello";if(!key){await msg.edit({text:`❌ <code>${mp}checkapi ask &lt;key|name&gt; &lt;问题&gt;</code>`, parseMode: "html" });return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:`💬 ${htmlEscape(info.displayName)}: "${htmlEscape(prompt)}" ...`, parseMode: "html" });const chat=await ct(info.provider,key,info.baseUrl,prompt);if(chat.ok){const l=[`💬 <b>${htmlEscape(info.displayName)}</b>`,`🤖 <code>${htmlEscape(chat.model ?? "")}</code> | 🕐 ${chat.elapsedMs}ms`,`📝 ${htmlEscape(chat.text ?? "")}`];if(chat.usage)l.push(`📊 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)l.push(fh(chat.headers));await msg.edit({text:`${l.join("\n")}`, parseMode: "html" });}else{await msg.edit({text:`❌ (${chat.elapsedMs||"?"}ms): ${htmlEscape(chat.error ?? "")}`, parseMode: "html" });}return;}
   if(sub==="speed"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:`❌ <code>${mp}checkapi speed &lt;key|name&gt;</code>`, parseMode: "html" });return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:`⚡ ${htmlEscape(info.displayName)} 速度测试中...`, parseMode: "html" });const results=await speedTest(info.provider,key,info.baseUrl);await msg.edit({text:`${results.join("\n")}`, parseMode: "html" });return;}
 
   // ── compare: two keys side by side ──
-  if(sub==="compare"){const [a,b]=[parts[1],parts[2]];if(!a||!b){await msg.edit({text:`❌ <code>${mp}checkapi compare &lt;key1|name1&gt; &lt;key2|name2&gt;</code>`, parseMode: "html" });return;};const keys=await lk();const resolve=(input:string)=>{const f=keys.find(k=>k.name===input);return f?{key:f.key,baseUrl:f.baseUrl,label:f.name}:{key:input,baseUrl:undefined,label:mk(input)};};const r1=resolve(a),r2=resolve(b);const p1=dp(r1.key,r1.baseUrl),p2=dp(r2.key,r2.baseUrl);await msg.edit({text:`🔍 正在对比 <b>${htmlEscape(r1.label)}</b> vs <b>${htmlEscape(r2.label)}</b>...`, parseMode: "html" });const [s1,s2]=await Promise.all([fcv2(p1.provider,r1.key,p1.baseUrl),fcv2(p2.provider,r2.key,r2.baseUrl)]);const m=[`⚖️ <b>${htmlEscape(p1.displayName)}</b> (${r1.label})`,...s1,`\n━━━━━━━━━━━━━━━━`,...s2];await msg.edit({text:`${m.join("\n")}`, parseMode: "html" });return;}
+  if(sub==="compare"){const [a,b]=[parts[1],parts[2]];if(!a||!b){await msg.edit({text:`❌ <code>${mp}checkapi compare &lt;key1|name1&gt; &lt;key2|name2&gt;</code>`, parseMode: "html" });return;};const keys=await lk();const resolve=(input:string)=>{const f=keys.find(k=>k.name===input);return f?{key:f.key,baseUrl:f.baseUrl,label:f.name}:{key:input,baseUrl:undefined,label:mk(input)};};const r1=resolve(a),r2=resolve(b);const p1=dp(r1.key,r1.baseUrl),p2=dp(r2.key,r2.baseUrl);await msg.edit({text:`🔍 正在对比 <b>${htmlEscape(r1.label)}</b> vs <b>${htmlEscape(r2.label)}</b>...`, parseMode: "html" });const [s1,s2]=await Promise.all([fcv2(p1.provider,r1.key ?? "",p1.baseUrl ?? ""),fcv2(p2.provider,r2.key ?? "",r2.baseUrl ?? "")]);const m=[`⚖️ <b>${htmlEscape(p1.displayName)}</b> (${r1.label})`,...s1,`\n━━━━━━━━━━━━━━━━`,...s2];await msg.edit({text:`${m.join("\n")}`, parseMode: "html" });return;}
 
   // ── Inline key: auto-detect + full check ──
   let key:string,baseUrl:string|undefined;let label:string;const keys=await lk();
@@ -427,6 +389,43 @@ cmdHandlers:Record<string,(msg:Api.Message)=>Promise<void>>={checkapi:async(msg)
   const results=await fcv2(info.provider,key,info.baseUrl);
   results.unshift(`🔍 <b>${htmlEscape(label)}</b>`);
   await msg.edit({text:`${results.join("\n")}`, parseMode: "html" });
-},};}
+},};
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "checkapi",
+    title: "API 检查",
+    description: "已保存的 API Key 与默认 BaseURL 配置",
+    category: "插件配置",
+    icon: "🔑",
+    getSchema: (): PanelSettingField[] => [
+      {
+        key: "defaultBaseUrl",
+        label: "默认 BaseURL",
+        type: "string",
+        placeholder: "https://api.openai.com",
+        description: "检测时使用的默认 API 地址"
+      }
+    ],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      try {
+        const keys = await lk();
+        const first = keys.find(k => !!k.baseUrl) || keys[0];
+        return { defaultBaseUrl: first?.baseUrl ?? "" };
+      } catch {
+        return { defaultBaseUrl: "" };
+      }
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      if (typeof patch.defaultBaseUrl !== "string") return;
+      const nu0 = patch.defaultBaseUrl.trim();
+      const keys = await lk();
+      if (keys.length > 0) {
+        keys[0].baseUrl = nu0 ? nu(nu0) : keys[0].baseUrl;
+        await sk(keys);
+      }
+    }
+  };
+}
 
 export default new CheckApiPlugin();

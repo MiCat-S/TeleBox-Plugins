@@ -55,31 +55,6 @@ class TeletypePlugin extends Plugin {
       this.db = {
         data: { autoMode: false, enabledUsers: [] },
         write: async () => {}
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "teletype",
-    title: "电传打字",
-    description: "电传打字机配置",
-    category: "插件配置",
-    icon: "⌨️",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "enabled",
-            "label": "启用",
-            "type": "boolean",
-            "description": "开启 Teletype 消息同步功能"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("teletype"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("teletype"), "config.json"), {} as any);
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
       };
     }
   }
@@ -316,6 +291,32 @@ class TeletypePlugin extends Plugin {
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "teletype",
+    title: "电传打字",
+    description: "电传打字机配置",
+    category: "插件配置",
+    icon: "⌨️",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "enabled",
+            "label": "启用",
+            "type": "boolean",
+            "description": "开启 Teletype 消息同步功能"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("teletype"), "config.json"), {} as any);
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("teletype"), "config.json"), {} as any);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 }
 
 export default new TeletypePlugin();

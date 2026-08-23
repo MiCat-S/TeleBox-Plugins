@@ -1,3 +1,5 @@
+import * as path from "path";
+import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import sharp from "sharp";
 import axios from "axios";
@@ -466,6 +468,8 @@ class EatPlugin extends Plugin {
     eat2: async (msg: Api.Message, trigger?: Api.Message) => {
       await fn(msg, trigger, true);
     },
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "eat",
@@ -520,7 +524,7 @@ class EatPlugin extends Plugin {
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await JSONFilePreset<RoleConfig>(path.join(createDirectoryInAssets("eat"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
+      return db.data as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await JSONFilePreset<RoleConfig>(path.join(createDirectoryInAssets("eat"), "config.json"), {} as any);
@@ -528,7 +532,8 @@ class EatPlugin extends Plugin {
       await db.write();
     },
   };
-  };
 }
 
 export default new EatPlugin();
+
+import { createDirectoryInAssets } from "@utils/pathHelpers";

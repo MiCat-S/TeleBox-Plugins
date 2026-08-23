@@ -2309,6 +2309,9 @@ ${apiKey ? "✅" : "⚪"} <b>AI搜索:</b> ${apiKey ? "已启用" : "未配置"}
     return {
       title: query,
       artist: "Unknown Artist",
+    };
+  }
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "music",
@@ -2369,17 +2372,15 @@ ${apiKey ? "✅" : "⚪"} <b>AI搜索:</b> ${apiKey ? "已启用" : "未配置"}
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<MusicHubConfig>(path.join(createDirectoryInAssets("music"), "config.json"), DEFAULT_CONFIG);
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("music"), "config.json"), DEFAULT_CONFIG);
       return db.data as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<MusicHubConfig>(path.join(createDirectoryInAssets("music"), "config.json"), DEFAULT_CONFIG);
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("music"), "config.json"), DEFAULT_CONFIG);
       Object.assign(db.data, patch);
       await db.write();
     },
   };
-    };
-  }
 }
 
 export default new MusicPlugin();

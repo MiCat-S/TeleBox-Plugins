@@ -1,6 +1,6 @@
 /*自动昵称更新插件 v3*/
 
-import { Plugin, type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
+import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
@@ -1005,65 +1005,7 @@ class AutoChangeNamePlugin extends Plugin {
   cleanup(): void {
     nameManager.cleanup();
     DataManager.cleanup();
-  
-    // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-        id: "autochangename",
-        title: "自动改名",
-        description: "自动更改群名称配置",
-        category: "插件配置",
-        icon: "✏️",
-        getSchema: (): PanelSettingField[] => [
-          {
-                "key": "enabled",
-                "label": "启用",
-                "type": "boolean"
-          },
-          {
-                "key": "interval",
-                "label": "间隔 (分钟)",
-                "type": "number",
-                "min": 60,
-                "max": 43200,
-                "default": 1440
-          },
-          {
-                "key": "format",
-                "label": "名称格式",
-                "type": "string",
-                "default": "{time} - {name}",
-                "description": "支持变量 {time} 时间, {name} 群名称, {date} 日期"
-          },
-          {
-                "key": "timezone",
-                "label": "时区",
-                "type": "select",
-                "options": [
-                      { "value": "Asia/Shanghai", "label": "中国标准时间 (UTC+8)" },
-                      { "value": "Asia/Tokyo", "label": "日本标准时间 (UTC+9)" },
-                      { "value": "Asia/Singapore", "label": "新加坡时间 (UTC+8)" },
-                      { "value": "America/New_York", "label": "东部时间 (UTC-5)" },
-                      { "value": "America/Los_Angeles", "label": "太平洋时间 (UTC-8)" },
-                      { "value": "Europe/London", "label": "伦敦时间 (UTC+0)" },
-                      { "value": "Europe/Berlin", "label": "柏林时间 (UTC+1)" },
-                      { "value": "Australia/Sydney", "label": "悉尼时间 (UTC+10)" },
-                      { "value": "Pacific/Auckland", "label": "奥克兰时间 (UTC+12)" },
-                      { "value": "UTC", "label": "协调世界时 (UTC+0)" }
-                ],
-                "default": "Asia/Shanghai"
-          }
-    ],
-        getValues: async (): Promise<Record<string, unknown>> => {
-          const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("autochangename"), "config.json"), {} as any);
-          return db.data as Record<string, unknown>;
-        },
-        setValues: async (patch: Record<string, unknown>): Promise<void> => {
-          const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("autochangename"), "config.json"), {} as any);
-          Object.assign(db.data, patch);
-          await db.write();
-        },
-      };
-}
+  }
 
   async setup(): Promise<void> {
     // Re-initialize nameManager state after cleanup/reload
@@ -1731,6 +1673,64 @@ America/New_York
   destroy(): void {
     nameManager.cleanup();
   }
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+        id: "autochangename",
+        title: "自动改名",
+        description: "自动更改群名称配置",
+        category: "插件配置",
+        icon: "✏️",
+        getSchema: (): PanelSettingField[] => [
+          {
+                "key": "enabled",
+                "label": "启用",
+                "type": "boolean"
+          },
+          {
+                "key": "interval",
+                "label": "间隔 (分钟)",
+                "type": "number",
+                "min": 60,
+                "max": 43200,
+                "default": 1440
+          },
+          {
+                "key": "format",
+                "label": "名称格式",
+                "type": "string",
+                "default": "{time} - {name}",
+                "description": "支持变量 {time} 时间, {name} 群名称, {date} 日期"
+          },
+          {
+                "key": "timezone",
+                "label": "时区",
+                "type": "select",
+                "options": [
+                      { "value": "Asia/Shanghai", "label": "中国标准时间 (UTC+8)" },
+                      { "value": "Asia/Tokyo", "label": "日本标准时间 (UTC+9)" },
+                      { "value": "Asia/Singapore", "label": "新加坡时间 (UTC+8)" },
+                      { "value": "America/New_York", "label": "东部时间 (UTC-5)" },
+                      { "value": "America/Los_Angeles", "label": "太平洋时间 (UTC-8)" },
+                      { "value": "Europe/London", "label": "伦敦时间 (UTC+0)" },
+                      { "value": "Europe/Berlin", "label": "柏林时间 (UTC+1)" },
+                      { "value": "Australia/Sydney", "label": "悉尼时间 (UTC+10)" },
+                      { "value": "Pacific/Auckland", "label": "奥克兰时间 (UTC+12)" },
+                      { "value": "UTC", "label": "协调世界时 (UTC+0)" }
+                ],
+                "default": "Asia/Shanghai"
+          }
+    ],
+        getValues: async (): Promise<Record<string, unknown>> => {
+          const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("autochangename"), "config.json"), {} as any);
+          return db.data as Record<string, unknown>;
+        },
+        setValues: async (patch: Record<string, unknown>): Promise<void> => {
+          const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("autochangename"), "config.json"), {} as any);
+          Object.assign(db.data, patch);
+          await db.write();
+        },
+      };
 }
 
 const plugin = new AutoChangeNamePlugin();

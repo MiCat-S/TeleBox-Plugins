@@ -1,3 +1,4 @@
+import { JSONFilePreset } from "lowdb/node";
 /**
  * SpeedNext plugin for TeleBox - Network Speed Test
  * Converted from PagerMaid-Modify speednext.py
@@ -121,7 +122,7 @@ async function fillRoundedCorners(
     (() => {
       const dir = path.dirname(inputPath);
       const ext =
-        meta.format === "jpeg" || meta.format === "jpg" ? ".jpg" : ".png";
+        (meta.format as string) === "jpeg" || (meta.format as string) === "jpg" ? ".jpg" : ".png";
       const base = path.basename(inputPath, path.extname(inputPath));
       return path.join(dir, `${base}.filled${ext}`);
     })();
@@ -160,7 +161,7 @@ async function fillRoundedCorners(
   let composed = background.composite([{ input: innerBuf, left, top }]);
 
   // Encode based on original format; default to PNG if unknown
-  if (meta.format === "jpeg" || meta.format === "jpg") {
+  if ((meta.format as string) === "jpeg" || (meta.format as string) === "jpg") {
     composed = composed.jpeg({ quality: 95 });
   } else if (meta.format === "png" || !meta.format) {
     composed = composed.png({ compressionLevel: 9 });
@@ -1508,6 +1509,8 @@ class SpeednextPlugin extends Plugin {
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     speedtest,
     st: speedtest,
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "speedtest",
@@ -1548,7 +1551,6 @@ class SpeednextPlugin extends Plugin {
       Object.assign(db.data, patch);
       await db.write();
     },
-  };
   };
 }
 

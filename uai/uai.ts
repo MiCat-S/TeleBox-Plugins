@@ -634,6 +634,8 @@ class UAIPlugin extends Plugin {
                 await msg.edit({ text: `❌ 错误: ${htmlEscape(err.message || String(err))}`, parseMode: "html" });
             }
         }
+    };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "uai",
@@ -675,7 +677,6 @@ class UAIPlugin extends Plugin {
       await db.write();
     },
   };
-    };
 }
 
 export default new UAIPlugin();

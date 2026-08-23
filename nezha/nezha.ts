@@ -1,3 +1,4 @@
+import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { Api } from "teleproto";
 import { getGlobalClient } from "@utils/runtimeManager";
@@ -793,6 +794,8 @@ class NeZhaPlugin extends Plugin {
   `;
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     nezha,
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "nezha",
@@ -828,15 +831,14 @@ class NeZhaPlugin extends Plugin {
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<NeZhaYamlConfig>(path.join(createDirectoryInAssets("nezha"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
+      const db = await JSONFilePreset<NeZhaConfig>(path.join(createDirectoryInAssets("nezha"), "config.json"), {} as any);
+      return db.data as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<NeZhaYamlConfig>(path.join(createDirectoryInAssets("nezha"), "config.json"), {} as any);
+      const db = await JSONFilePreset<NeZhaConfig>(path.join(createDirectoryInAssets("nezha"), "config.json"), {} as any);
       Object.assign(db.data, patch);
       await db.write();
     },
-  };
   };
 }
 

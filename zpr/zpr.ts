@@ -717,7 +717,9 @@ ${Object.entries(PROXY_HOSTS).map(([key, value]) =>
                 await editHtmlMessage(msg, `❌ <b>插件执行失败:</b> ${htmlEscape(error.message || "未知错误")}`);
             }
         }
-  // Panel Settings Adapter
+    };
+
+// Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
         id: "zpr",
         title: "随机纸片人",
@@ -748,7 +750,6 @@ ${Object.entries(PROXY_HOSTS).map(([key, value]) =>
                 await ZprConfigManager.setProxyHost(patch.zpr_proxy_host);
             }
         },
-    };
     };
 }
 

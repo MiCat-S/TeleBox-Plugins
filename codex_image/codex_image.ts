@@ -484,7 +484,9 @@ class CodexImagePlugin extends Plugin {
 
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     cximg: handleCximg,
-  // Panel Settings Adapter
+  };
+
+// Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
       id: "codex_image",
       title: "Codex 图片生成",
@@ -534,7 +536,6 @@ class CodexImagePlugin extends Plugin {
         }
       },
     };
-  };
 }
 
 export default new CodexImagePlugin();

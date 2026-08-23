@@ -88,88 +88,6 @@ class PicToStickerPlugin extends Plugin {
       background: 'transparent',
       autoDelete: true,
       compressionLevel: 6
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "pic_to_sticker",
-    title: "图片转贴纸",
-    description: "图片转贴纸配置",
-    category: "插件配置",
-    icon: "🖼️",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "defaultEmoji",
-            "label": "默认表情",
-            "type": "string",
-            "default": "🤔",
-            "description": "贴纸默认使用的表情"
-      },
-      {
-            "key": "quality",
-            "label": "质量",
-            "type": "number",
-            "min": 1,
-            "max": 100,
-            "default": 80,
-            "description": "图片质量，值越高画质越好"
-      },
-      {
-            "key": "format",
-            "label": "格式",
-            "type": "select",
-            "options": [
-                  {
-                        "value": "webp",
-                        "label": "WebP"
-                  },
-                  {
-                        "value": "png",
-                        "label": "PNG"
-                  }
-            ],
-            "description": "贴纸输出格式"
-      },
-      {
-            "key": "size",
-            "label": "尺寸",
-            "type": "number",
-            "min": 100,
-            "max": 512,
-            "default": 512,
-            "description": "贴纸边长（像素）"
-      },
-      {
-            "key": "background",
-            "label": "背景色",
-            "type": "string",
-            "default": "#00000000",
-            "description": "背景颜色，格式 #RRGGBBAA，透明=#00000000"
-      },
-      {
-            "key": "autoDelete",
-            "label": "自动删除原图",
-            "type": "boolean",
-            "description": "转换后自动删除原始图片"
-      },
-      {
-            "key": "compressionLevel",
-            "label": "压缩级别",
-            "type": "number",
-            "min": 0,
-            "max": 9,
-            "default": 6,
-            "description": "PNG 压缩级别，0=无压缩，9=最大压缩"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<PicToStickerConfig>(path.join(createDirectoryInAssets("pic_to_sticker"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<PicToStickerConfig>(path.join(createDirectoryInAssets("pic_to_sticker"), "config.json"), {} as any);
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
     };
     this.loadConfig();
   }
@@ -662,6 +580,89 @@ class PicToStickerPlugin extends Plugin {
       return null;
     }
   }
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "pic_to_sticker",
+    title: "图片转贴纸",
+    description: "图片转贴纸配置",
+    category: "插件配置",
+    icon: "🖼️",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "defaultEmoji",
+            "label": "默认表情",
+            "type": "string",
+            "default": "🤔",
+            "description": "贴纸默认使用的表情"
+      },
+      {
+            "key": "quality",
+            "label": "质量",
+            "type": "number",
+            "min": 1,
+            "max": 100,
+            "default": 80,
+            "description": "图片质量，值越高画质越好"
+      },
+      {
+            "key": "format",
+            "label": "格式",
+            "type": "select",
+            "options": [
+                  {
+                        "value": "webp",
+                        "label": "WebP"
+                  },
+                  {
+                        "value": "png",
+                        "label": "PNG"
+                  }
+            ],
+            "description": "贴纸输出格式"
+      },
+      {
+            "key": "size",
+            "label": "尺寸",
+            "type": "number",
+            "min": 100,
+            "max": 512,
+            "default": 512,
+            "description": "贴纸边长（像素）"
+      },
+      {
+            "key": "background",
+            "label": "背景色",
+            "type": "string",
+            "default": "#00000000",
+            "description": "背景颜色，格式 #RRGGBBAA，透明=#00000000"
+      },
+      {
+            "key": "autoDelete",
+            "label": "自动删除原图",
+            "type": "boolean",
+            "description": "转换后自动删除原始图片"
+      },
+      {
+            "key": "compressionLevel",
+            "label": "压缩级别",
+            "type": "number",
+            "min": 0,
+            "max": 9,
+            "default": 6,
+            "description": "PNG 压缩级别，0=无压缩，9=最大压缩"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<PicToStickerConfig>(path.join(createDirectoryInAssets("pic_to_sticker"), "config.json"), {} as any);
+      return db.data as unknown as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<PicToStickerConfig>(path.join(createDirectoryInAssets("pic_to_sticker"), "config.json"), {} as any);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 }
 
 export default new PicToStickerPlugin();

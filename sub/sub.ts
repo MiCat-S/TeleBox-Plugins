@@ -1,7 +1,8 @@
+import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
-import { createDirectoryInTemp } from "@utils/pathHelpers";
+import { createDirectoryInTemp, createDirectoryInAssets } from "@utils/pathHelpers";
 import { Api } from "teleproto";
 import { CustomFile } from "teleproto/client/uploads.js";
 import { exec } from "child_process";
@@ -551,6 +552,8 @@ echo "后端: http://\$IP:3001/\$SECRET"`;
         await msg.edit({ text: `❌ ${error.message || error}`.slice(0, 3500) });
       }
     },
+  };
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "sub",
@@ -582,7 +585,6 @@ echo "后端: http://\$IP:3001/\$SECRET"`;
       Object.assign(db.data, patch);
       await db.write();
     },
-  };
   };
 }
 

@@ -850,31 +850,6 @@ class TmpAdminPlugin extends Plugin {
     const baseOptions = {
       message,
       parseMode: "html" as const,
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "tmp_admin",
-    title: "临时管理",
-    description: "临时管理员配置",
-    category: "插件配置",
-    icon: "🛡️",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "enabled",
-            "label": "启用",
-            "type": "boolean",
-            "description": "开启临时管理员功能"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("tmp_admin"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("tmp_admin"), "config.json"), {} as any);
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
     };
 
     try {
@@ -1016,6 +991,32 @@ class TmpAdminPlugin extends Plugin {
 
     return {};
   }
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "tmp_admin",
+    title: "临时管理",
+    description: "临时管理员配置",
+    category: "插件配置",
+    icon: "🛡️",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "enabled",
+            "label": "启用",
+            "type": "boolean",
+            "description": "开启临时管理员功能"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("tmp_admin"), "config.json"), {} as any);
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("tmp_admin"), "config.json"), {} as any);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 }
 
 export default new TmpAdminPlugin();

@@ -1,3 +1,4 @@
+import { JSONFilePreset } from "lowdb/node";
 // 文件名: plugins/gif.ts
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { getGlobalClient, getCurrentGeneration } from "@utils/runtimeManager";
@@ -513,6 +514,15 @@ class GifStickerPlugin extends Plugin {
 
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     gif,
+  };
+
+  cleanup(): void {
+    for (const timer of pendingTimers) {
+      clearTimeout(timer);
+    }
+    pendingTimers.clear();
+  }
+
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "gif",
@@ -588,7 +598,7 @@ class GifStickerPlugin extends Plugin {
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await JSONFilePreset<GifConverterConfig>(path.join(createDirectoryInAssets("gif"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
+      return db.data as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await JSONFilePreset<GifConverterConfig>(path.join(createDirectoryInAssets("gif"), "config.json"), {} as any);
@@ -596,14 +606,6 @@ class GifStickerPlugin extends Plugin {
       await db.write();
     },
   };
-  };
-
-  cleanup(): void {
-    for (const timer of pendingTimers) {
-      clearTimeout(timer);
-    }
-    pendingTimers.clear();
-  }
 }
 
 export default new GifStickerPlugin();

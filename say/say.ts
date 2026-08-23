@@ -1429,66 +1429,6 @@ class SayPlugin extends Plugin {
         // 进度提示：编辑当前消息的文字/caption
         const progress = async (t: string) => {
             try { await msg.edit({ text: t }); } catch { }
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "say",
-    title: "语音合成",
-    description: "文本转语音 TTS 配置",
-    category: "插件配置",
-    icon: "🔊",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "primary",
-            "label": "默认提供商",
-            "type": "select",
-            "options": [
-                  {
-                        "value": "mimo",
-                        "label": "MiMo"
-                  },
-                  {
-                        "value": "volc",
-                        "label": "火山引擎"
-                  },
-                  {
-                        "value": "fish",
-                        "label": "Fish Audio"
-                  }
-            ],
-            "description": "TTS 语音合成的默认提供商"
-      },
-      {
-            "key": "speed",
-            "label": "语速",
-            "type": "number",
-            "min": 0.5,
-            "max": 2.0,
-            "default": 1.0,
-            "description": "语音合成语速，0.5=慢速，2.0=快速"
-      },
-      {
-            "key": "style",
-            "label": "风格指令",
-            "type": "string",
-            "description": "语音合成风格（如 safe, cheerful）"
-      },
-      {
-            "key": "translate",
-            "label": "追加译文",
-            "type": "boolean",
-            "description": "语音后追加文字译文"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<MimoConfig>(path.join(createDirectoryInAssets("say"), "config.json"), DEFAULT_CONFIG);
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<MimoConfig>(path.join(createDirectoryInAssets("say"), "config.json"), DEFAULT_CONFIG);
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
         };
 
         const result = await synthesizeAndSend(msg.peerId, raw, cfg, progress, replyToId);
@@ -1507,6 +1447,67 @@ class SayPlugin extends Plugin {
     }
 
     listenMessageHandlerIgnoreEdited = true;
+
+  // Panel Settings Adapter
+    panelAdapter: PanelSettingsAdapter = {
+      id: "say",
+      title: "语音合成",
+      description: "文本转语音 TTS 配置",
+      category: "插件配置",
+      icon: "🔊",
+      getSchema: (): PanelSettingField[] => [
+        {
+              "key": "primary",
+              "label": "默认提供商",
+              "type": "select",
+              "options": [
+                    {
+                          "value": "mimo",
+                          "label": "MiMo"
+                    },
+                    {
+                          "value": "volc",
+                          "label": "火山引擎"
+                    },
+                    {
+                          "value": "fish",
+                          "label": "Fish Audio"
+                    }
+              ],
+              "description": "TTS 语音合成的默认提供商"
+        },
+        {
+              "key": "speed",
+              "label": "语速",
+              "type": "number",
+              "min": 0.5,
+              "max": 2.0,
+              "default": 1.0,
+              "description": "语音合成语速，0.5=慢速，2.0=快速"
+        },
+        {
+              "key": "style",
+              "label": "风格指令",
+              "type": "string",
+              "description": "语音合成风格（如 safe, cheerful）"
+        },
+        {
+              "key": "translate",
+              "label": "追加译文",
+              "type": "boolean",
+              "description": "语音后追加文字译文"
+        }
+  ],
+      getValues: async (): Promise<Record<string, unknown>> => {
+        const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("say"), "config.json"), DEFAULT_CONFIG);
+        return db.data as Record<string, unknown>;
+      },
+      setValues: async (patch: Record<string, unknown>): Promise<void> => {
+        const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("say"), "config.json"), DEFAULT_CONFIG);
+        Object.assign(db.data, patch);
+        await db.write();
+      },
+    };
 }
 
 export default new SayPlugin();

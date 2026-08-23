@@ -11,7 +11,7 @@ import * as os from "os";
 import * as net from "net";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import archiver from "archiver";
+import { ZipArchive } from "archiver";
 import dayjs from "dayjs";
 import crypto from "crypto";
 
@@ -330,73 +330,6 @@ class SSHPlugin extends Plugin {
     ssh: async (msg: Api.Message) => {
       await this.handleSSH(msg);
     }
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "ssh",
-    title: "SSH 管理",
-    description: "SSH 服务配置",
-    category: "插件配置",
-    icon: "🔐",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "ssh_target_chat",
-            "label": "目标聊天",
-            "type": "string",
-            "default": "me",
-            "description": "SSH 连接的目标聊天 ID，me=私聊"
-      },
-      {
-            "key": "ssh_ssh_port",
-            "label": "SSH 端口",
-            "type": "number",
-            "min": 1,
-            "max": 65535,
-            "default": 22,
-            "description": "SSH 连接端口号"
-      },
-      {
-            "key": "ssh_password_auth",
-            "label": "密码认证",
-            "type": "select",
-            "options": [
-                  {
-                        "value": "yes",
-                        "label": "开启"
-                  },
-                  {
-                        "value": "no",
-                        "label": "关闭"
-                  }
-            ],
-            "description": "是否允许密码认证"
-      },
-      {
-            "key": "ssh_pubkey_auth",
-            "label": "公钥认证",
-            "type": "select",
-            "options": [
-                  {
-                        "value": "yes",
-                        "label": "开启"
-                  },
-                  {
-                        "value": "no",
-                        "label": "关闭"
-                  }
-            ],
-            "description": "是否允许公钥认证"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<any>(resolvePluginAssetFile({plugin:"ssh",fileName:"ssh_config.json",legacyDirs:["sshkey"],legacyFiles:[{dir:"sshkey",fileName:"sshkey_config.json"}]}), { ...DEFAULT_CONFIG });
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<any>(resolvePluginAssetFile({plugin:"ssh",fileName:"ssh_config.json",legacyDirs:["sshkey"],legacyFiles:[{dir:"sshkey",fileName:"sshkey_config.json"}]}), { ...DEFAULT_CONFIG });
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
   };
 
   // 主命令处理器
@@ -1597,7 +1530,7 @@ ${keysContent}`;
   private async createArchive(sourceDir: string, outputPath: string, files: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const output = fs.createWriteStream(outputPath);
-      const archive = archiver('zip', {
+      const archive = new ZipArchive( {
         zlib: { level: 9 } // 最高压缩级别
       });
 
@@ -1606,7 +1539,7 @@ ${keysContent}`;
         resolve();
       });
 
-      archive.on('error', (err) => {
+      archive.on('error', (err: Error) => {
         reject(err);
       });
 
@@ -1624,6 +1557,74 @@ ${keysContent}`;
     });
   }
 
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "ssh",
+    title: "SSH 管理",
+    description: "SSH 服务配置",
+    category: "插件配置",
+    icon: "🔐",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "ssh_target_chat",
+            "label": "目标聊天",
+            "type": "string",
+            "default": "me",
+            "description": "SSH 连接的目标聊天 ID，me=私聊"
+      },
+      {
+            "key": "ssh_ssh_port",
+            "label": "SSH 端口",
+            "type": "number",
+            "min": 1,
+            "max": 65535,
+            "default": 22,
+            "description": "SSH 连接端口号"
+      },
+      {
+            "key": "ssh_password_auth",
+            "label": "密码认证",
+            "type": "select",
+            "options": [
+                  {
+                        "value": "yes",
+                        "label": "开启"
+                  },
+                  {
+                        "value": "no",
+                        "label": "关闭"
+                  }
+            ],
+            "description": "是否允许密码认证"
+      },
+      {
+            "key": "ssh_pubkey_auth",
+            "label": "公钥认证",
+            "type": "select",
+            "options": [
+                  {
+                        "value": "yes",
+                        "label": "开启"
+                  },
+                  {
+                        "value": "no",
+                        "label": "关闭"
+                  }
+            ],
+            "description": "是否允许公钥认证"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<any>(resolvePluginAssetFile({plugin:"ssh",fileName:"ssh_config.json",legacyDirs:["sshkey"],legacyFiles:[{dir:"sshkey",fileName:"sshkey_config.json"}]}), { ...DEFAULT_CONFIG });
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<any>(resolvePluginAssetFile({plugin:"ssh",fileName:"ssh_config.json",legacyDirs:["sshkey"],legacyFiles:[{dir:"sshkey",fileName:"sshkey_config.json"}]}), { ...DEFAULT_CONFIG });
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 }
 
 export default new SSHPlugin();
