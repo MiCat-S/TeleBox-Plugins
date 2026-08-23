@@ -858,7 +858,7 @@ const deleteMessageOrGroup = async (msg: Api.Message): Promise<void> => {
 
 const getHeaderContentType = (headers: unknown): string | undefined => {
   if (!headers || typeof headers !== "object") return undefined;
-  const contentType = (headers as Record<string, unknown>)["content-type"];
+  const contentType = (headers as unknown as Record<string, unknown>)["content-type"];
   if (typeof contentType === "string") {
     return contentType.split(";")[0];
   }
@@ -5277,7 +5277,7 @@ class AIPlugin extends Plugin {
     ],
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await JSONFilePreset<ProviderConfig>(path.join(createDirectoryInAssets("ai"), "config.json"), {} as any);
-      return db.data as Record<string, unknown>;
+      return db.data as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await JSONFilePreset<ProviderConfig>(path.join(createDirectoryInAssets("ai"), "config.json"), {} as any);

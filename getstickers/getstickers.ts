@@ -6,7 +6,7 @@ import * as path from "path";
 import { createWriteStream } from "fs";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import archiver from "archiver";
+import { ZipArchive } from "archiver";
 import bigInt from "big-integer";
 import { CustomFile } from "teleproto/client/uploads";
 import { execFile } from "child_process";
@@ -597,7 +597,7 @@ export_gif(animation, gif_path, 512, 512, 30)
       
       // 创建输出流
       const output = fs.createWriteStream(zipPath);
-      const archive = archiver('zip', {
+      const archive = new ZipArchive( {
       zlib: { level: 9 } // 最高压缩级别
     });
       
