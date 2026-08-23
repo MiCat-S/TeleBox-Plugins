@@ -3372,6 +3372,8 @@ class ThemePlugin extends Plugin {
   /** Only messages we authored (or in our own Saved Messages) can be msg.edit()-ed */
   private async canEditMessage(msg: Api.Message): Promise<boolean> {
     if (msg.out) return true;
+    // 转发消息即使 out=true 也无法编辑（原作者非本人）
+    if ((msg as any).fwdFrom) return false;
     try {
       if (!this.selfUserId) {
         const client = await getGlobalClient();
@@ -3422,7 +3424,7 @@ class ThemePlugin extends Plugin {
         await msg.edit({ text: html`⏳ 解析中…`, parseMode: "html" });
       } catch (editErr: any) {
         const errName = editErr?.errorMessage || editErr?.message || "";
-        if (/AUTH_REQUIRED|CHAT_ADMIN_REQUIRED|MESSAGE_ID_INVALID/i.test(errName)) return;
+        if (/AUTH_REQUIRED|CHAT_ADMIN_REQUIRED|MESSAGE_ID_INVALID|MESSAGE_AUTHOR_REQUIRED/i.test(errName)) return;
         throw editErr;
       }
       const client = await getGlobalClient();
