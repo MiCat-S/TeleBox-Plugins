@@ -108,6 +108,7 @@ TeleBox-Plugins 是 [TeleBox](https://github.com/TeleBoxOrg/TeleBox) 项目的�
 - `rate` - 货币实时汇率查询与计算  
 - `restore_pin` - 恢复群组被取消的置顶消息  
 - `rev` - 反转你的消息  
+- `save` - 突破限制保存/转发消息  
 - `say` - 自动语音合成 (MiMo / 火山豆包 / Fish)，每会话独立开关  
 - `search` - 频道消息搜索  
 - `sendat` - 定时消息发送插件  
