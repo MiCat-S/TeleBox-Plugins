@@ -3417,7 +3417,14 @@ class ThemePlugin extends Plugin {
       if (size > MAX_FILE_SIZE || size === 0) return;
       if (!name.endsWith(".attheme") && !name.endsWith(".tdesktop-theme") && !name.endsWith(".tgios-theme") && !name.endsWith(".tgx-theme") && !name.endsWith(".json") && !name.endsWith(".tdesktop-palette") && !name.includes("theme") && !name.includes("tgx") && !name.includes("settings")) return;
 
-      await msg.edit({ text: html`⏳ 解析中…`, parseMode: "html" });
+      // 编辑权限不足（转发消息 / 他人消息误入守卫）时静默跳过，避免反复刷 ERROR 日志
+      try {
+        await msg.edit({ text: html`⏳ 解析中…`, parseMode: "html" });
+      } catch (editErr: any) {
+        const errName = editErr?.errorMessage || editErr?.message || "";
+        if (/AUTH_REQUIRED|CHAT_ADMIN_REQUIRED|MESSAGE_ID_INVALID/i.test(errName)) return;
+        throw editErr;
+      }
       const client = await getGlobalClient();
       const buf = await downloadMedia(msg, client);
       if (!buf || buf.length === 0) return;
