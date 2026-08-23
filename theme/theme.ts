@@ -3366,11 +3366,37 @@ class ThemePlugin extends Plugin {
 
   // ── listen: file attachments + t.me/addtheme links ───────────────────
 
+  /** Cached self user id for Saved Messages detection (avoids getMe on every message) */
+  private selfUserId: string | null = null;
+
+  /** Only messages we authored (or in our own Saved Messages) can be msg.edit()-ed */
+  private async canEditMessage(msg: Api.Message): Promise<boolean> {
+    if (msg.out) return true;
+    try {
+      if (!this.selfUserId) {
+        const client = await getGlobalClient();
+        const me = await client.getMe();
+        this.selfUserId = me.id.toString();
+      }
+      const chatId = msg.chatId ? msg.chatId.toString() : null;
+      const peer = msg.peerId as any;
+      const peerUserId =
+        peer && typeof peer === "object" && "userId" in peer
+          ? peer.userId?.toString()
+          : null;
+      // Saved Messages 特征：chatId / peerId 等于自己的 user id
+      return chatId === this.selfUserId || peerUserId === this.selfUserId;
+    } catch {
+      return false;
+    }
+  }
+
   listenMessageHandler = async (msg: Api.Message): Promise<void> => {
     try {
-      // Guard: only process our own messages (outgoing or Saved Messages)
-      // msg.edit() requires MESSAGE_AUTHOR_REQUIRED — we can't edit others' messages
-      if (!msg.out && !(msg as any).savedPeerId) return;
+      // Guard: 只处理自己发出的消息或自己 Saved Messages 内的消息
+      // msg.edit() 需要 MESSAGE_AUTHOR_REQUIRED —— 编辑他人消息会抛错
+      // （旧实现用 savedPeerId 判断，聊天文件夹共享收藏里他人消息也带该字段，导致误判编辑他人消息）
+      if (!(await this.canEditMessage(msg))) return;
 
       const text = msg.message?.trim();
 
