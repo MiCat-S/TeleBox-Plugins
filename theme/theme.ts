@@ -3467,7 +3467,11 @@ class ThemePlugin extends Plugin {
         false,
         null,
       );
-    } catch (e) {
+    } catch (e: any) {
+      // 守卫误判（共享收藏/频道帖等）导致后续 msg.edit() 抛 MESSAGE_AUTHOR_REQUIRED，
+      // 属预期情况，静默跳过，避免反复刷 ERROR 日志
+      const errName = e?.errorMessage || e?.message || "";
+      if (/MESSAGE_AUTHOR_REQUIRED|AUTH_REQUIRED|CHAT_ADMIN_REQUIRED/i.test(errName)) return;
       console.error("[theme] listen:", e);
     }
   };
