@@ -183,6 +183,10 @@
     "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/epic/epic.ts?raw=true",
     "desc": "检查Epic Games喜加一优惠"
   },
+  "exec": {
+    "url": "https://github.com/TeleBoxOrg/TeleBox_Plugins/blob/main/exec/exec.ts?raw=true",
+    "desc": "运行命令"
+  },
   "fadian": {
     "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/fadian/fadian.ts?raw=true",
     "desc": "fadian语录"
