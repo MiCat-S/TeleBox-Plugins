@@ -60,6 +60,7 @@ TeleBox-Plugins 是 [TeleBox](https://github.com/TeleBoxOrg/TeleBox) 项目的�
 - `eatgif` - 生成"吃掉"动图表情包  
 - `encode` - 简单的编码解码  
 - `epic` - 检查Epic Games喜加一优惠  
+- `exec` - 运行命令  
 - `fadian` - fadian语录  
 - `fbi` - 欢迎加入联邦调查局  
 - `getstickers` - 下载整个贴纸包  
