@@ -27,6 +27,8 @@ import { Low } from "lowdb";
 import { JSONFilePreset } from "lowdb/node";
 import axios from "axios";
 import * as path from "path";
+import * as fs from "fs";
+import { spawn } from "child_process";
 
 type NodeSeekData = {
   cookie: string;
@@ -43,11 +45,19 @@ const DEFAULT_DATA: NodeSeekData = {
 };
 
 let dbInstance: Low<NodeSeekData> | null = null;
+const NODESEEK_ASSET_DIR = createDirectoryInAssets("nodeseek");
+const DB_PATH = path.join(NODESEEK_ASSET_DIR, "data.json");
+const CURL_CFFI_PYTHON = path.join(
+  NODESEEK_ASSET_DIR,
+  "curl_cffi_venv",
+  "bin",
+  "python",
+);
 
 async function getDB(): Promise<Low<NodeSeekData>> {
   if (!dbInstance) {
-    const dbPath = path.join(createDirectoryInAssets("nodeseek"), "data.json");
-    dbInstance = await JSONFilePreset<NodeSeekData>(dbPath, DEFAULT_DATA);
+    dbInstance = await JSONFilePreset<NodeSeekData>(DB_PATH, DEFAULT_DATA);
+    if (process.platform !== "win32") fs.chmodSync(DB_PATH, 0o600);
   }
   return dbInstance;
 }
@@ -85,6 +95,105 @@ type SignResult = {
   diag?: string; // 失败时的诊断信息：服务器标识 + 响应片段，用于区分 WAF 拦截 vs 真实业务错误
 };
 
+type CurlCffiResult = {
+  status: number;
+  server: string;
+  text: string;
+};
+
+const CURL_CFFI_SCRIPT = `
+import json
+import sys
+from curl_cffi import requests
+
+payload = json.load(sys.stdin)
+headers = {
+    key: value
+    for key, value in payload["headers"].items()
+    if key.lower() != "user-agent"
+}
+response = requests.post(
+    payload["url"],
+    headers=headers,
+    json={},
+    impersonate="chrome",
+    timeout=25,
+)
+json.dump({
+    "status": response.status_code,
+    "server": response.headers.get("server", ""),
+    "text": response.text,
+}, sys.stdout)
+`;
+
+function hasCurlCffi(): boolean {
+  return fs.existsSync(CURL_CFFI_PYTHON);
+}
+
+async function requestWithCurlCffi(
+  url: string,
+  cookie: string,
+): Promise<CurlCffiResult | null> {
+  if (!hasCurlCffi()) return null;
+
+  return new Promise<CurlCffiResult>((resolve, reject) => {
+    const child = spawn(CURL_CFFI_PYTHON, ["-c", CURL_CFFI_SCRIPT], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+
+    const finish = (error?: Error, result?: CurlCffiResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(result!);
+    };
+
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      finish(new Error("curl_cffi 请求超时"));
+    }, 35000);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+      if (stdout.length > 1024 * 1024) {
+        child.kill("SIGKILL");
+        finish(new Error("curl_cffi 响应过大"));
+      }
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr = (stderr + chunk.toString("utf8")).slice(-2000);
+    });
+    child.on("error", (error) => finish(error));
+    child.on("close", (code) => {
+      if (settled) return;
+      if (code !== 0) {
+        finish(new Error(`curl_cffi 退出码 ${code}: ${stderr.trim() || "未知错误"}`));
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout) as CurlCffiResult;
+        if (!Number.isFinite(parsed.status) || typeof parsed.text !== "string") {
+          throw new Error("响应字段无效");
+        }
+        finish(undefined, parsed);
+      } catch (error: any) {
+        finish(new Error(`curl_cffi 响应解析失败: ${error?.message || error}`));
+      }
+    });
+
+    child.stdin.end(
+      JSON.stringify({
+        url,
+        headers: { ...COMMON_HEADERS, Cookie: cookie },
+      }),
+    );
+  });
+}
+
 function looksLikeWafChallenge(serverHeader: string, bodyText: string): boolean {
   const s = (serverHeader || "").toLowerCase();
   const b = (bodyText || "").toLowerCase();
@@ -112,9 +221,29 @@ async function signInOnce(cookie: string): Promise<SignResult> {
         transformResponse: [(d) => d], // 保留原始字符串，自己决定要不要 JSON.parse
       }
     );
-    const status = resp.status;
-    const serverHeader = String(resp.headers?.["server"] || resp.headers?.["Server"] || "");
-    const rawBody = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data || "");
+    let status = resp.status;
+    let serverHeader = String(resp.headers?.["server"] || resp.headers?.["Server"] || "");
+    let rawBody = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data || "");
+    let transport = "axios";
+    let fallbackError = "";
+
+    const challengeBody = looksLikeWafChallenge("", rawBody);
+    if (
+      (status !== 200 && looksLikeWafChallenge(serverHeader, rawBody)) ||
+      challengeBody
+    ) {
+      try {
+        const fallback = await requestWithCurlCffi(url, cookie);
+        if (fallback) {
+          status = fallback.status;
+          serverHeader = fallback.server;
+          rawBody = fallback.text;
+          transport = "curl_cffi";
+        }
+      } catch (error: any) {
+        fallbackError = error?.message || String(error);
+      }
+    }
 
     // NodeSeek 签到接口的约定：成功/失败都用 HTTP 200 返回，真正的状态在 JSON 的
     // code / retcode / success 字段里。401 才代表 Cookie 过期。因此**先解析业务码**，
@@ -130,7 +259,7 @@ async function signInOnce(cookie: string): Promise<SignResult> {
           status === 401
             ? "Cookie 已失效，请重新获取"
             : `HTTP ${status}${isWaf ? "（疑似被 Cloudflare/WAF 拦截，并非 Cookie 失效）" : ""}`,
-        diag: `server=${serverHeader || "未知"} | body片段: ${snippet}`,
+        diag: `transport=${transport} | server=${serverHeader || "未知"}${fallbackError ? ` | fallback=${fallbackError}` : ""} | body片段: ${snippet}`,
       };
     }
 
@@ -143,7 +272,7 @@ async function signInOnce(cookie: string): Promise<SignResult> {
       return {
         result: "error",
         msg: isWaf ? "请求被 Cloudflare/WAF 拦截，稍后重试" : "响应格式异常，无法解析",
-        diag: `server=${serverHeader || "未知"} | body片段: ${rawBody.replace(/\s+/g, " ").trim().slice(0, 200)}`,
+        diag: `transport=${transport} | server=${serverHeader || "未知"}${fallbackError ? ` | fallback=${fallbackError}` : ""} | body片段: ${rawBody.replace(/\s+/g, " ").trim().slice(0, 200)}`,
       };
     }
 
@@ -166,7 +295,7 @@ async function signInOnce(cookie: string): Promise<SignResult> {
     return {
       result: "fail",
       msg: msg || `签到失败（业务码 ${typeof code === "number" ? code : "未知"}）`,
-      diag: `server=${serverHeader || "未知"} | body片段: ${rawBody.replace(/\s+/g, " ").trim().slice(0, 200)}`,
+      diag: `transport=${transport} | server=${serverHeader || "未知"}${fallbackError ? ` | fallback=${fallbackError}` : ""} | body片段: ${rawBody.replace(/\s+/g, " ").trim().slice(0, 200)}`,
     };
   } catch (e: any) {
     return { result: "error", msg: e?.message || "网络请求出错" };
@@ -213,7 +342,7 @@ const HELP_TEXT = `🍗 <b>NodeSeek 自动签到</b>
 浏览器登录 nodeseek.com 后按 F12 打开开发者工具 → Network → 刷新页面 → 任意一个请求的 Request Headers 里复制完整的 Cookie 字段值。
 
 <b>说明：</b>
-签到逻辑参考 xinycai/nodeseek_signin，直接调用 NodeSeek 签到接口，无需账号密码登录。Cookie 仅保存在本机 assets/nodeseek/data.json 中。`;
+签到逻辑参考 xinycai/nodeseek_signin，直接调用 NodeSeek 签到接口，无需账号密码登录。Cookie 仅保存在本机 assets/nodeseek/data.json 中。遇到 Cloudflare challenge 时会自动尝试 curl_cffi 浏览器指纹 fallback。插件不保存账号密码；Cookie 失效后请在浏览器重新登录并再次执行 <code>.nodeseek set &lt;cookie&gt;</code>。`;
 
 class NodeSeekPlugin extends Plugin {
   description = "NodeSeek 论坛每日签到，领取鸡腿";
@@ -278,6 +407,7 @@ class NodeSeekPlugin extends Plugin {
             `⏰ 自动签到：${db.data.autoEnabled ? "已开启（每天 8:00~8:59 随机一次）" : "未开启"}`,
             `📅 今日是否已处理：${db.data.lastDoneDate === todayStr() ? "是" : "否"}`,
             `📝 最近一次结果：${db.data.lastResult || "无"}`,
+            `🛡️ Cloudflare fallback：${hasCurlCffi() ? "可用" : "未安装"}`,
           ];
           await msg.edit({ text: lines.join("\n") });
           return;
