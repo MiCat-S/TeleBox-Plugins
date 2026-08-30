@@ -1183,13 +1183,14 @@ class YvluPlugin extends Plugin {
               // 本地无需预下载 customEmojiBuffer。
             }
 
+            const isFakeMessage = i === 0 && !!fakeMsg;
             if (i === 0) {
               if (fakeMsg) {
                 message.message = fakeMsg.message;
                 message.entities = fakeMsg.entities;
               }
               let replyTo = (trigger || msg)?.replyTo;
-              if (replyTo?.quoteText) {
+              if (!fakeMsg && replyTo?.quoteText) {
                 message.message = replyTo.quoteText;
                 message.entities = replyTo.quoteEntities;
               }
@@ -1284,15 +1285,17 @@ class YvluPlugin extends Plugin {
             }
 
             let media: { url: string } | undefined = undefined;
-                        try {
-                          const mediaResult = await downloadAndProcessMedia(client, message);
-                          if (mediaResult) {
-                            const base64 = mediaResult.buffer.toString("base64");
-                            media = { url: `data:${mediaResult.mime};base64,${base64}` };
-                          }
-                        } catch (e) {
-                          console.error("下载媒体失败", e);
-                        }
+            if (!isFakeMessage) {
+              try {
+                const mediaResult = await downloadAndProcessMedia(client, message);
+                if (mediaResult) {
+                  const base64 = mediaResult.buffer.toString("base64");
+                  media = { url: `data:${mediaResult.mime};base64,${base64}` };
+                }
+              } catch (e) {
+                console.error("下载媒体失败", e);
+              }
+            }
 
             // 构建高级消息对象（quote-api 全字段）
             const msgItem: any = {
@@ -1324,7 +1327,7 @@ class YvluPlugin extends Plugin {
             if (media) msgItem.media = media;
 
             // 转发行标签
-            if ((message as any).fwdFrom) {
+            if ((message as any).fwdFrom && !isFakeMessage) {
               const fwdInfo = await forwardedSource(message).catch(() => undefined);
               if (fwdInfo?.name) {
                 msgItem.forward = { label: fwdInfo.name };
@@ -1338,7 +1341,7 @@ class YvluPlugin extends Plugin {
             }
 
             // 媒体类型高级字段
-            const mediaObj = (message as any).media;
+            const mediaObj = isFakeMessage ? undefined : (message as any).media;
             if (mediaObj) {
               const kind = getMediaKind(message);
               if (kind === "voice") {
