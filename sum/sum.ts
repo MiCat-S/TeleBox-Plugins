@@ -15,6 +15,8 @@ import { htmlEscape } from "@utils/htmlEscape";
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
+const CODEX_USER_AGENT =
+  "codex-tui/0.146.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.146.0)";
 
 const filePath = path.join(
   createDirectoryInAssets("sum"),
@@ -474,6 +476,7 @@ async function callChatCompletions(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "User-Agent": CODEX_USER_AGENT,
       },
       timeout,
     },
@@ -511,6 +514,7 @@ async function callResponses(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "User-Agent": CODEX_USER_AGENT,
       },
       timeout,
     },

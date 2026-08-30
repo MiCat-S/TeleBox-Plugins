@@ -22,6 +22,9 @@ import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
 
+const CODEX_USER_AGENT =
+  "codex-tui/0.146.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.146.0)";
+
 interface ProviderConfig {
   tag: string;
   url: string;
@@ -2858,6 +2861,7 @@ class AIService implements ConfigChangeListener {
 
     const authConfig = applyAuthConfig(authMode, providerConfig, url, {
       "Content-Type": "application/json",
+      "User-Agent": CODEX_USER_AGENT,
     });
 
     const sys = (systemPrompt || "").trim();
@@ -3125,7 +3129,9 @@ class AIService implements ConfigChangeListener {
     const requestModel = model;
 
     let data: any;
-    let headers: Record<string, string> = {};
+    let headers: Record<string, string> = {
+      "User-Agent": CODEX_USER_AGENT,
+    };
 
     if (image && image.data) {
       const dataUri = `data:${image.mimeType};base64,${image.data.toString("base64")}`;
@@ -3243,6 +3249,7 @@ class AIService implements ConfigChangeListener {
 
     const authConfig = applyAuthConfig(authMode, providerConfig, url, {
       "Content-Type": "application/json",
+      "User-Agent": CODEX_USER_AGENT,
     });
 
     const content: any[] = [];
