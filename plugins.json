@@ -492,7 +492,7 @@
     "desc": "YouTube 视频下载"
   },
   "yvlu": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/yvlu/yvlu.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/yvlu/yvlu.ts",
     "desc": "语录贴纸：语音/文件/音频行、转发标签、管理员头衔、视频/GIF 角标；支持 webp/image/stories 输出"
   },
   "zhijiao": {
