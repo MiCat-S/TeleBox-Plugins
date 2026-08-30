@@ -8,6 +8,7 @@ import * as path from "path";
 import * as fs from "fs/promises";
 import { statSync, existsSync } from "fs";
 import { CustomFile } from 'teleproto/client/uploads';
+import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
 
@@ -1118,9 +1119,6 @@ class PrometheusPlugin extends Plugin {
       const text = msg.text || "";
       const parts = text.trim().split(/\s+/);
       
-      // 检查是否有回复消息
-      const replyMsg = await msg.getReplyMessage();
-      
       // 处理source子命令
       if (parts.length >= 2 && parts[1].toLowerCase() === "source") {
         const config = await this.getUserConfig(userId);
@@ -1210,6 +1208,8 @@ class PrometheusPlugin extends Plugin {
       
       if (tempTarget) target = tempTarget;
       const localTarget = this.isLocalTarget(target);
+      const needsReplyMessage = links.length === 0 && !rangeMode;
+      const replyMsg = needsReplyMessage ? await safeGetReplyMessage(msg) : undefined;
       
       // 如果既没有链接也没有回复消息，显示帮助
       if (links.length === 0 && !replyMsg && !rangeMode) {

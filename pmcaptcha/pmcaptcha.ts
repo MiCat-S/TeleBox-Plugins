@@ -3,7 +3,6 @@ import { Api, TelegramClient } from "teleproto";
 import { CustomFile } from "teleproto/client/uploads";
 import path from "path";
 import fs from "fs";
-import { execSync } from "child_process";
 import { JSONFilePreset } from "lowdb/node";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { Plugin, type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
@@ -536,7 +535,6 @@ async function runPassActions(client: TelegramClient, userId: number) {
 // ─── 图片验证码生成 ───────────────────────────────────────────────────────────
 
 let _canvas: any = null;
-let _canvasInstalling = false;
 
 async function tryGetCanvas(): Promise<any> {
   if (_canvas !== null) return _canvas;
@@ -545,44 +543,11 @@ async function tryGetCanvas(): Promise<any> {
     _canvas = await import("canvas");
     log(LogLevel.INFO, "canvas module loaded");
     return _canvas;
-  } catch {}
-
-  if (_canvasInstalling) {
-    const deadline = Date.now() + 60_000;
-    while (_canvasInstalling && Date.now() < deadline) {
-      if (!(await generationDelay(500))) return false;
-    }
-    return _canvas ?? false;
-  }
-
-  _canvasInstalling = true;
-  log(LogLevel.INFO, "canvas not found — auto installing (npm install canvas)…");
-
-  try {
-    execSync("npm install canvas", { stdio: "pipe" });
-    log(LogLevel.INFO, "canvas installed successfully");
   } catch (e) {
-    log(LogLevel.ERROR, "canvas install failed", e);
-    _canvas = false;
-    _canvasInstalling = false;
-    return false;
-  }
-
-  try {
-    const canvasId = require.resolve("canvas");
-    if (require.cache[canvasId]) delete require.cache[canvasId];
-  } catch {}
-
-  try {
-    _canvas = await import("canvas");
-    log(LogLevel.INFO, "canvas dynamically loaded after install");
-  } catch (e) {
-    log(LogLevel.ERROR, "canvas load failed after install", e);
+    log(LogLevel.WARN, "canvas module unavailable; image captcha will fall back to math", e);
     _canvas = false;
   }
-
-  _canvasInstalling = false;
-  return _canvas ?? false;
+  return _canvas;
 }
 
 async function generateImageCaptcha(
@@ -910,6 +875,7 @@ async function sendCaptcha(client: TelegramClient, userId: number): Promise<void
   }
 
   const mode    = cfg.mode();
+  let effectiveMode = mode;
   const timeout = cfg.timeout();
   const tries   = cfg.maxTries();
   const actions = cfg.failActions();
@@ -978,11 +944,17 @@ async function sendCaptcha(client: TelegramClient, userId: number): Promise<void
         const img = await generateImageCaptcha(digitOnly);
 
         if (!img) {
-          log(LogLevel.WARN, `canvas unavailable for user ${userId}`);
-          try {
-            await client.sendMessage(peerTarget(userId), { message: "❌ 验证服务暂时不可用，请稍后再试。" });
-          } catch {}
-          return;
+          log(LogLevel.WARN, `canvas unavailable for user ${userId}; falling back to math captcha`);
+          const { question: q, answer: ans } = mathQuestion();
+          answer = ans;
+          question = q;
+          effectiveMode = CaptchaMode.MATH;
+          const m = await client.sendMessage(peerTarget(userId), {
+            message: `🔒 <b>人机验证</b>（图片组件不可用，已降级为算术验证）\n\n请回复以下算式的答案：\n\n${codeTag(`${q} = ?`)}${buildFooter()}`,
+            parseMode: "html"
+          });
+          msgIds.push(m.id);
+          break;
         }
 
         answer   = img.answer;
@@ -1012,6 +984,7 @@ async function sendCaptcha(client: TelegramClient, userId: number): Promise<void
       const { question: q, answer: ans } = mathQuestion();
       answer   = ans;
       question = q;
+      effectiveMode = CaptchaMode.MATH;
       const m = await client.sendMessage(peerTarget(userId), {
           message: `🔒 <b>人机验证</b>（降级）\n\n请回复以下算式的答案：\n\n${codeTag(`${q} = ?`)}`,
         parseMode: "html"
@@ -1021,7 +994,7 @@ async function sendCaptcha(client: TelegramClient, userId: number): Promise<void
 
     if (lifecycle.signal.aborted || lifecycle.generation !== getCurrentGeneration()) return;
 
-    const state: CaptchaState = { answer, question, isQA, tries: 0, timer: null, msgIds, mode, generation: lifecycle.generation };
+    const state: CaptchaState = { answer, question, isQA, tries: 0, timer: null, msgIds, mode: effectiveMode, generation: lifecycle.generation };
 
     if (timeout > 0) {
       state.timer = lifecycle.setTimeout(() => {
@@ -1510,9 +1483,9 @@ function helpText(section?: string): string {
 • <code>${p}pmc captcha text</code>
   关键词验证（需回复指定词，或内置随机问答）
 • <code>${p}pmc captcha img_digit</code>
-  图片验证码（5位纯数字，自动安装 canvas）
+  图片验证码（5位纯数字；缺少 canvas 时自动降级为算术验证）
 • <code>${p}pmc captcha img_mixed</code>
-  图片验证码（5位字母+数字，自动安装 canvas）</blockquote>
+  图片验证码（5位字母+数字；缺少 canvas 时自动降级为算术验证）</blockquote>
 
 <b>⚙️ 参数设置：</b>
 <blockquote expandable>• <code>${p}pmc set time <秒></code>
@@ -1603,9 +1576,9 @@ function helpText(section?: string): string {
 • <code>${p}pmc captcha text</code>
   关键词验证（需回复指定词，或内置随机问答）
 • <code>${p}pmc captcha img_digit</code>
-  图片验证码（5位纯数字，自动安装 canvas）
+  图片验证码（5位纯数字；缺少 canvas 时自动降级为算术验证）
 • <code>${p}pmc captcha img_mixed</code>
-  图片验证码（5位字母+数字，自动安装 canvas）</blockquote>`,
+  图片验证码（5位字母+数字；缺少 canvas 时自动降级为算术验证）</blockquote>`,
 
     set: `<b>⚙️ 参数设置</b>
 

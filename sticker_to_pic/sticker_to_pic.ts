@@ -4,7 +4,7 @@ import { getPrefixes } from "@utils/pluginManager";
 import { Api } from "teleproto";
 import * as fs from "fs";
 import * as path from "path";
-import { execSync, execFileSync } from "child_process";
+import { execFileSync } from "child_process";
 import * as os from "os";
 import { safeGetMessages } from "@utils/safeGetMessages";
 
@@ -14,113 +14,40 @@ import { htmlEscape } from "@utils/htmlEscape";
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
 
-// HTML转义工具
-// 自动安装ImageMagick（静默安装，无需用户干预）
-const ensureImageMagick = async (showProgress: boolean = false, msg?: Api.Message): Promise<boolean> => {
-  try {
-    // 检查是否已安装
-    execSync('which convert', { stdio: 'ignore' });
-    return true;
-  } catch (error) {
-    console.log('[sticker_to_pic] ImageMagick未安装，正在自动安装...');
-    
-    if (showProgress && msg) {
-      await msg.edit({ text: "⚙️ 正在自动安装ImageMagick依赖...", parseMode: "html" });
-    }
-    
+type ImageMagickCommand = "magick" | "convert";
+
+function getImageMagickCommand(): ImageMagickCommand | null {
+  const candidates: ImageMagickCommand[] = os.platform() === "win32"
+    ? ["magick"]
+    : ["magick", "convert"];
+
+  for (const command of candidates) {
     try {
-      const platform = os.platform();
-      
-      if (platform === 'linux') {
-        // Ubuntu/Debian系统
-        try {
-          // 尝试使用sudo（如果可用）
-          try {
-            execSync('sudo -n true', { stdio: 'ignore' });
-            execSync('sudo apt-get update && sudo apt-get install -y imagemagick', { stdio: 'pipe' });
-          } catch {
-            // 无sudo权限，尝试直接安装
-            execSync('apt-get update && apt-get install -y imagemagick', { stdio: 'pipe' });
-          }
-          console.log('[sticker_to_pic] ImageMagick自动安装成功 (apt)');
-          return true;
-        } catch (aptError) {
-          // 尝试yum (CentOS/RHEL)
-          try {
-            try {
-              execSync('sudo -n true', { stdio: 'ignore' });
-              execSync('sudo yum install -y ImageMagick', { stdio: 'pipe' });
-            } catch {
-              execSync('yum install -y ImageMagick', { stdio: 'pipe' });
-            }
-            console.log('[sticker_to_pic] ImageMagick自动安装成功 (yum)');
-            return true;
-          } catch (yumError) {
-            // 尝试dnf (Fedora)
-            try {
-              try {
-                execSync('sudo -n true', { stdio: 'ignore' });
-                execSync('sudo dnf install -y ImageMagick', { stdio: 'pipe' });
-              } catch {
-                execSync('dnf install -y ImageMagick', { stdio: 'pipe' });
-              }
-              console.log('[sticker_to_pic] ImageMagick自动安装成功 (dnf)');
-              return true;
-            } catch (dnfError) {
-              console.error('[sticker_to_pic] Linux系统自动安装失败，可能需要手动安装');
-              return false;
-            }
-          }
-        }
-      } else if (platform === 'darwin') {
-        // macOS系统
-        try {
-          // 检查是否有Homebrew
-          execSync('which brew', { stdio: 'ignore' });
-          execSync('brew install imagemagick', { stdio: 'pipe' });
-          console.log('[sticker_to_pic] ImageMagick自动安装成功 (brew)');
-          return true;
-        } catch (brewError) {
-          // 尝试安装Homebrew后再安装ImageMagick
-          try {
-            console.log('[sticker_to_pic] 正在安装Homebrew...');
-            execSync('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"', { stdio: 'pipe' });
-            execSync('brew install imagemagick', { stdio: 'pipe' });
-            console.log('[sticker_to_pic] ImageMagick自动安装成功 (brew)');
-            return true;
-          } catch {
-            console.error('[sticker_to_pic] macOS自动安装失败');
-            return false;
-          }
-        }
-      } else if (platform === 'win32') {
-        // Windows系统 - 尝试使用chocolatey或scoop
-        try {
-          execSync('where choco', { stdio: 'ignore' });
-          execSync('choco install imagemagick -y', { stdio: 'pipe' });
-          console.log('[sticker_to_pic] ImageMagick自动安装成功 (chocolatey)');
-          return true;
-        } catch {
-          try {
-            execSync('where scoop', { stdio: 'ignore' });
-            execSync('scoop install imagemagick', { stdio: 'pipe' });
-            console.log('[sticker_to_pic] ImageMagick自动安装成功 (scoop)');
-            return true;
-          } catch {
-            console.error('[sticker_to_pic] Windows系统需要手动安装ImageMagick');
-            return false;
-          }
-        }
-      } else {
-        console.error('[sticker_to_pic] 不支持的操作系统');
-        return false;
-      }
-    } catch (installError) {
-      console.error('[sticker_to_pic] ImageMagick自动安装出错:', installError);
-      return false;
-    }
+      execFileSync(command, ["-version"], { stdio: "ignore" });
+      return command;
+    } catch {}
   }
-};
+
+  return null;
+}
+
+function getImageMagickInstallHelp(): string {
+  const platform = os.platform();
+  if (platform === "linux") {
+    return "Ubuntu/Debian: sudo apt install imagemagick\nRHEL/CentOS: sudo yum install ImageMagick\nFedora: sudo dnf install ImageMagick";
+  }
+  if (platform === "darwin") {
+    return "macOS: brew install imagemagick";
+  }
+  if (platform === "win32") {
+    return "Windows: 请从 ImageMagick 官网下载安装，并确保 magick.exe 已加入 PATH";
+  }
+  return "请查阅 ImageMagick 官方文档并手动安装";
+}
+
+function imageMagickMissingText(): string {
+  return `❌ <b>未检测到 ImageMagick</b>\n\n插件不会自动修改系统或安装依赖，请由管理员确认后手动执行：\n<pre>${htmlEscape(getImageMagickInstallHelp())}</pre>`;
+}
 
 // 帮助文档
 const help_text = `🖼️ <b>贴纸转图片插件</b>
@@ -129,7 +56,7 @@ const help_text = `🖼️ <b>贴纸转图片插件</b>
 • 🔄 <b>格式转换</b>：将Telegram贴纸转换为JPG/PNG图片
 • 🎨 <b>透明处理</b>：支持保持或移除透明背景
 • 📄 <b>文档模式</b>：支持以文档形式发送原图
-• ⚡ <b>自动安装</b>：自动检测并安装ImageMagick依赖
+• ⚡ <b>依赖检测</b>：使用前检测 ImageMagick，不会自动安装系统软件
 
 <b>🔧 使用方法:</b>
 • <code>${mainPrefix}sticker_to_pic</code> - 转换为JPG（回复贴纸）
@@ -145,6 +72,7 @@ const help_text = `🖼️ <b>贴纸转图片插件</b>
 • <code>${mainPrefix}stp doc</code> - 文档模式发送
 
 <b>🔄 管理命令:</b>
+• <code>${mainPrefix}stp check</code> - 检查 ImageMagick 状态
 
 <b>📋 支持格式:</b>
 • 输入：WebP贴纸文件
@@ -152,8 +80,7 @@ const help_text = `🖼️ <b>贴纸转图片插件</b>
 • 透明：仅PNG格式支持
 
 <b>⚙️ 系统要求:</b>
-• ImageMagick（自动安装）
-• 支持Linux/macOS自动安装`;
+• ImageMagick（需管理员显式安装）`;
 
 class StickerToPicPlugin extends Plugin {
 
@@ -196,68 +123,18 @@ class StickerToPicPlugin extends Plugin {
       // 隐藏的检查命令（不在帮助文档中显示）
       if (sub === "check") {
         await msg.edit({ text: "🔍 正在检查ImageMagick状态...", parseMode: "html" });
-        
-        // 首先检查是否已安装
-        try {
-          execSync('which convert', { stdio: 'ignore' });
-          // 已安装，获取版本信息
-          try {
-            const version = execSync('convert -version', { encoding: 'utf8' });
-            const versionLine = version.split('\n')[0];
-            await msg.edit({
-              text: `✅ <b>ImageMagick状态正常</b>\n\n<b>版本信息:</b>\n<code>${htmlEscape(versionLine)}</code>\n\n🎯 <b>功能状态:</b> 可正常使用贴纸转换功能`,
-              parseMode: "html"
-            });
-          } catch (error) {
-            await msg.edit({
-              text: "✅ <b>ImageMagick已安装</b>\n\n⚠️ 无法获取版本信息，但可正常使用",
-              parseMode: "html"
-            });
-          }
-        } catch (error) {
-          // 未安装，尝试自动安装
-          await msg.edit({ text: "❌ <b>ImageMagick未安装</b>\n\n🔄 正在自动安装，请稍候...", parseMode: "html" });
-          
-          const isInstalled = await ensureImageMagick(true, msg);
-          if (isInstalled) {
-            try {
-              const version = execSync('convert -version', { encoding: 'utf8' });
-              const versionLine = version.split('\n')[0];
-              await msg.edit({
-                text: `🎉 <b>ImageMagick自动安装成功！</b>\n\n<b>版本信息:</b>\n<code>${htmlEscape(versionLine)}</code>\n\n✅ <b>状态:</b> 现在可以正常使用贴纸转换功能`,
-                parseMode: "html"
-              });
-            } catch (versionError) {
-              await msg.edit({
-                text: "🎉 <b>ImageMagick自动安装成功！</b>\n\n✅ <b>状态:</b> 现在可以正常使用贴纸转换功能",
-                parseMode: "html"
-              });
-            }
-          } else {
-            const platform = os.platform();
-            let installCmd = '';
-            let platformName = '';
-            
-            if (platform === 'linux') {
-              installCmd = 'sudo apt install imagemagick';
-              platformName = 'Linux';
-            } else if (platform === 'darwin') {
-              installCmd = 'brew install imagemagick';
-              platformName = 'macOS';
-            } else if (platform === 'win32') {
-              installCmd = '请访问 https://imagemagick.org/script/download.php#windows';
-              platformName = 'Windows';
-            } else {
-              installCmd = '请查阅官方文档安装ImageMagick';
-              platformName = '未知系统';
-            }
-            
-            await msg.edit({
-              text: `❌ <b>ImageMagick自动安装失败</b>\n\n<b>检测到系统:</b> ${platformName}\n<b>手动安装命令:</b>\n<code>${htmlEscape(installCmd)}</code>`,
-              parseMode: "html"
-            });
-          }
+        const command = getImageMagickCommand();
+        if (!command) {
+          await msg.edit({ text: imageMagickMissingText(), parseMode: "html" });
+          return;
         }
+
+        const version = execFileSync(command, ["-version"], { encoding: "utf8" });
+        const versionLine = version.split("\n")[0];
+        await msg.edit({
+          text: `✅ <b>ImageMagick状态正常</b>\n\n<b>命令:</b> <code>${command}</code>\n<b>版本信息:</b>\n<code>${htmlEscape(versionLine)}</code>`,
+          parseMode: "html"
+        });
         return;
       }
 
@@ -385,40 +262,10 @@ class StickerToPicPlugin extends Plugin {
           parseMode: "html"
         });
 
-        // 静默检查并自动安装ImageMagick
-        const isImageMagickReady = await ensureImageMagick(false);
-        if (!isImageMagickReady) {
-          // 如果静默安装失败，显示进度并重试
-          await msg.edit({
-            text: "⚙️ 正在自动安装ImageMagick依赖，请稍候...",
-            parseMode: "html"
-          });
-          
-          const retryInstall = await ensureImageMagick(true, msg);
-          if (!retryInstall) {
-            const platform = os.platform();
-            let installCmd = '';
-            
-            if (platform === 'linux') {
-              installCmd = 'sudo apt install imagemagick';
-            } else if (platform === 'darwin') {
-              installCmd = 'brew install imagemagick';
-            } else if (platform === 'win32') {
-              installCmd = '请访问 https://imagemagick.org/script/download.php#windows';
-            }
-            
-            await msg.edit({
-              text: `❌ <b>ImageMagick自动安装失败</b>\n\n<b>请手动安装:</b>\n<code>${htmlEscape(installCmd)}</code>`,
-              parseMode: "html"
-            });
-            return;
-          }
-          
-          // 安装成功，继续转换
-          await msg.edit({
-            text: `🔄 正在转换为${outputFormat.toUpperCase()}格式...`,
-            parseMode: "html"
-          });
+        const imageMagickCommand = getImageMagickCommand();
+        if (!imageMagickCommand) {
+          await msg.edit({ text: imageMagickMissingText(), parseMode: "html" });
+          return;
         }
 
         try {
@@ -434,7 +281,7 @@ class StickerToPicPlugin extends Plugin {
             convertArgs = [stickerPath, "-background", "white", "-alpha", "remove", "-alpha", "off", outputPath];
           }
 
-          execFileSync("convert", convertArgs, { stdio: 'ignore' });
+          execFileSync(imageMagickCommand, convertArgs, { stdio: 'ignore' });
           
           if (!fs.existsSync(outputPath)) {
             throw new Error('转换失败：输出文件未生成');

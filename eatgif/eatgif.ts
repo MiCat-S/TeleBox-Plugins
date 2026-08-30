@@ -1,5 +1,5 @@
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import axios from "axios";
 import {
   createDirectoryInAssets,
@@ -327,7 +327,7 @@ class EatGifPlugin extends Plugin {
 
     const mainCanvas = await assetBufferFor(entry.url);
 
-    let composite: sharp.OverlayOptions[] = [];
+    let composite: OverlayOptions[] = [];
     if (entry.you) {
       const iconMasked = await this.iconMaskedFor(entry.you, youAvatarBuffer);
       composite.push(iconMasked);
@@ -351,7 +351,7 @@ class EatGifPlugin extends Plugin {
   private async iconMaskedFor(
     role: RoleConfig,
     avatar: Buffer
-  ): Promise<sharp.OverlayOptions> {
+  ): Promise<OverlayOptions> {
     const maskBuffer = await assetBufferFor(role.mask);
     const { width: maskWidth, height: maskHeight } = await sharp(
       maskBuffer

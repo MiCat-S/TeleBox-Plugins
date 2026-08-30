@@ -7,6 +7,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { createDirectoryInTemp } from "@utils/pathHelpers";
 import * as cheerio from "cheerio";
+import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
 
@@ -258,7 +259,7 @@ async function resolveTargetIP(
     }
 
     if (msg.replyTo) {
-        const r = await msg.getReplyMessage();
+        const r = await safeGetReplyMessage(msg);
         if (r?.message) {
             const ipFromReply = extractIPFromText(r.message);
             if (ipFromReply) return ipFromReply;

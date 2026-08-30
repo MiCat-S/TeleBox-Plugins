@@ -1,7 +1,7 @@
 import * as path from "path";
 import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import axios from "axios";
 import { Api } from "teleproto";
 import { CustomFile } from "teleproto/client/uploads";
@@ -138,7 +138,7 @@ async function getAssetBuffer(url: string): Promise<Buffer> {
 async function iconMaskedFor(params: {
   role: RoleConfig;
   avatar: Buffer;
-}): Promise<sharp.OverlayOptions> {
+}): Promise<OverlayOptions> {
   const { role, avatar } = params;
 
   const maskBuffer = await getAssetBuffer(role.mask);
@@ -299,7 +299,7 @@ async function compositeWithEntryConfig(parmas: {
 
   const baseBuffer = await getAssetBuffer(entry.url);
 
-  let composite: sharp.OverlayOptions[] = [];
+  let composite: OverlayOptions[] = [];
   if (entry.you) {
     const iconMasked = await iconMaskedFor({
       role: entry.you,

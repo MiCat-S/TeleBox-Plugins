@@ -15,6 +15,7 @@ interface EditedMessageEvent {
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
 import * as crypto from "crypto";
+import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
 
@@ -212,7 +213,7 @@ class ImageMonitorPlugin extends Plugin {
     const isValidImCommand = prefixes.some(prefix => command === `${prefix}im`);
     
     if (msg.isReply && isValidImCommand) {
-        const repliedMsg = await msg.getReplyMessage();
+        const repliedMsg = await safeGetReplyMessage(msg);
         if (!repliedMsg) {
             await MessageManager.edit(msg, "❌ 未找到被回复的消息。");
             return;

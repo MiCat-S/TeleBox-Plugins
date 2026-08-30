@@ -14,7 +14,7 @@ import {
 } from "@utils/pathHelpers";
 import * as fs from "fs";
 import path from "path";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import axios from "axios";
 import sharp from "sharp";
@@ -50,6 +50,7 @@ const help_txt = `<b>使用方法:</b>
 // HTML escape function
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const ASSETS_DIR = createDirectoryInAssets("speedtest");
 const TEMP_DIR = createDirectoryInTemp("speedtest");
 
@@ -295,9 +296,14 @@ async function downloadCli(): Promise<void> {
     } else if (platform === "win32") {
       // Windows 需要解压 zip 文件
       console.log(`Extracting zip file: ${tempFile}`);
-      const AdmZip = require("adm-zip");
-      const zip = new AdmZip(tempFile);
-      zip.extractAllTo(ASSETS_DIR, true);
+      await execFileAsync("powershell.exe", [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "& { param($archivePath, $destinationPath) Expand-Archive -LiteralPath $archivePath -DestinationPath $destinationPath -Force }",
+        tempFile,
+        ASSETS_DIR,
+      ]);
 
       // 验证可执行文件是否存在
       if (!fs.existsSync(SPEEDTEST_PATH)) {
