@@ -60,6 +60,25 @@ function normalizeReasoningEffort(value: unknown): ReasoningEffort {
     : "auto";
 }
 
+const SERVICE_TIER_VALUES = [
+  "auto",
+  "default",
+  "priority",
+  "fast",
+  "flex",
+] as const;
+
+type ServiceTier = (typeof SERVICE_TIER_VALUES)[number];
+
+const SERVICE_TIER_OPTIONS = SERVICE_TIER_VALUES.join("|");
+
+function normalizeServiceTier(value: unknown): ServiceTier {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return SERVICE_TIER_VALUES.includes(normalized as ServiceTier)
+    ? (normalized as ServiceTier)
+    : "auto";
+}
+
 type CustomProvider = {
   name: string;
   base_url: string;
@@ -76,6 +95,7 @@ type AIConfig = {
   default_spoiler?: boolean;
   default_timeout?: number;
   default_reasoning_effort?: ReasoningEffort;
+  default_service_tier?: ServiceTier;
   reply_mode?: boolean;
   max_output_length?: number;
   link_preview?: boolean;
@@ -165,6 +185,7 @@ async function getDB() {
       default_prompt: DEFAULT_PROMPT,
       default_spoiler: false,
       default_reasoning_effort: "auto",
+      default_service_tier: "auto",
     },
   });
 
@@ -175,6 +196,7 @@ async function getDB() {
       default_provider: "openai",
       default_prompt: DEFAULT_PROMPT,
       default_reasoning_effort: "auto",
+      default_service_tier: "auto",
     };
   }
 
@@ -189,6 +211,9 @@ async function getDB() {
   }
   db.data.aiConfig.default_reasoning_effort = normalizeReasoningEffort(
     db.data.aiConfig.default_reasoning_effort,
+  );
+  db.data.aiConfig.default_service_tier = normalizeServiceTier(
+    db.data.aiConfig.default_service_tier,
   );
   for (const provider of Object.values(db.data.aiConfig.providers)) {
     if (!provider.type || provider.type === "openai") provider.type = "auto";
@@ -401,6 +426,7 @@ async function callChatCompletions(
   model: string,
   input: string,
   reasoningEffort: ReasoningEffort,
+  serviceTier: ServiceTier,
   timeout: number,
 ): Promise<string> {
   const payload: Record<string, unknown> = {
@@ -411,6 +437,7 @@ async function callChatCompletions(
   if (reasoningEffort !== "auto") {
     payload.reasoning_effort = reasoningEffort;
   }
+  if (serviceTier !== "auto") payload.service_tier = serviceTier;
 
   const response = await axios.post(
     `${normalizedBaseUrl(baseUrl)}/v1/chat/completions`,
@@ -435,6 +462,7 @@ async function callResponses(
   model: string,
   input: string,
   reasoningEffort: ReasoningEffort,
+  serviceTier: ServiceTier,
   timeout: number,
 ): Promise<string> {
   const payload: Record<string, unknown> = {
@@ -446,6 +474,7 @@ async function callResponses(
   if (reasoningEffort !== "auto") {
     payload.reasoning = { effort: reasoningEffort };
   }
+  if (serviceTier !== "auto") payload.service_tier = serviceTier;
 
   const response = await axios.post(
     `${normalizedBaseUrl(baseUrl)}/v1/responses`,
@@ -527,6 +556,7 @@ async function callWithProtocol(
   provider: CustomProvider,
   input: string,
   reasoningEffort: ReasoningEffort,
+  serviceTier: ServiceTier,
   timeout: number,
 ): Promise<string> {
   switch (protocol) {
@@ -537,6 +567,7 @@ async function callWithProtocol(
         provider.model,
         input,
         reasoningEffort,
+        serviceTier,
         timeout,
       );
     case "gemini":
@@ -562,6 +593,7 @@ async function callWithProtocol(
         provider.model,
         input,
         reasoningEffort,
+        serviceTier,
         timeout,
       );
   }
@@ -585,6 +617,7 @@ async function callAI(
   messages: string,
   prompt: string,
   reasoningEffort: ReasoningEffort,
+  serviceTier: ServiceTier,
   timeout: number,
 ): Promise<string> {
   const input = `${prompt}\n\n${messages}`;
@@ -596,6 +629,7 @@ async function callAI(
       provider,
       input,
       reasoningEffort,
+      serviceTier,
       timeout,
     );
   } catch (error) {
@@ -610,6 +644,7 @@ async function callAI(
         provider,
         input,
         reasoningEffort,
+        serviceTier,
         timeout,
       );
     }
@@ -961,6 +996,7 @@ async function summarizeMessages(
       messages,
       prompt,
       aiConfig.default_reasoning_effort || "auto",
+      aiConfig.default_service_tier || "auto",
       timeout,
     );
     return { success: true, result: aiResponse };
@@ -1158,6 +1194,9 @@ const help_text = `▎群消息总结
 
 <code>${mainPrefix}sum config set reasoning auto|none|minimal|low|medium|high|xhigh</code>
 设置 OpenAI Chat Completions/Responses 接口的思考强度；<code>auto</code> 使用服务端默认值。
+
+<code>${mainPrefix}sum config set service auto|default|priority|fast|flex</code>
+设置 OpenAI Chat Completions/Responses 接口的服务等级；<code>auto</code> 不发送该参数。
 
 <code>${mainPrefix}sum config set prompt &lt;提示词&gt;</code>
 设置默认总结提示词；<code>${mainPrefix}sum config set prompt reset</code> 恢复内置详细版。
@@ -1847,6 +1886,9 @@ class SummaryPlugin extends Plugin {
             lines.push(
               `思考强度: ${codeTag(cfg.default_reasoning_effort || "auto")}`,
             );
+            lines.push(
+              `服务等级: ${codeTag(cfg.default_service_tier || "auto")}`,
+            );
             lines.push(`链接预览: ${cfg.link_preview ? "开启" : "关闭"}`);
 
             await msg.edit({ text: lines.join("\n"), parseMode: "html" });
@@ -1991,6 +2033,23 @@ class SummaryPlugin extends Plugin {
               await db.write();
               await msg.edit({
                 text: `✅ 思考强度已设置为 ${codeTag(effort)}`,
+                parseMode: "html",
+              });
+              return;
+            }
+
+            if (name === "service") {
+              const tier = prop?.toLowerCase();
+              if (!SERVICE_TIER_VALUES.includes(tier as ServiceTier)) {
+                await msg.edit({
+                  text: `❌ 服务等级必须是 ${SERVICE_TIER_OPTIONS}`,
+                });
+                return;
+              }
+              db.data.aiConfig.default_service_tier = tier as ServiceTier;
+              await db.write();
+              await msg.edit({
+                text: `✅ 服务等级已设置为 ${codeTag(tier)}`,
                 parseMode: "html",
               });
               return;
@@ -2247,6 +2306,17 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
             "description": "仅对 OpenAI Chat Completions/Responses 接口生效"
       },
       {
+            "key": "default_service_tier",
+            "label": "服务等级",
+            "type": "select",
+            "options": SERVICE_TIER_VALUES.map((value) => ({
+              value,
+              label: value === "auto" ? "auto（不指定）" : value,
+            })),
+            "default": "auto",
+            "description": "priority/fast 使用更高优先级处理，具体价格由 API 服务商决定"
+      },
+      {
             "key": "default_spoiler",
             "label": "默认使用 Spoiler",
             "type": "boolean",
@@ -2283,6 +2353,9 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
       Object.assign(db.data.aiConfig, patch);
       db.data.aiConfig.default_reasoning_effort = normalizeReasoningEffort(
         db.data.aiConfig.default_reasoning_effort,
+      );
+      db.data.aiConfig.default_service_tier = normalizeServiceTier(
+        db.data.aiConfig.default_service_tier,
       );
       await db.write();
     },

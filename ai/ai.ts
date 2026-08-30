@@ -42,9 +42,11 @@ interface DB {
   currentChatTag: string;
   currentChatModel: string;
   currentChatReasoningEffort: ReasoningEffort;
+  currentChatServiceTier: ServiceTier;
   currentSearchTag: string;
   currentSearchModel: string;
   currentSearchReasoningEffort: ReasoningEffort;
+  currentSearchServiceTier: ServiceTier;
   currentImageTag: string;
   currentImageModel: string;
   currentVideoTag: string;
@@ -82,6 +84,25 @@ const normalizeReasoningEffort = (value: unknown): ReasoningEffort => {
   const normalized = String(value ?? "").trim().toLowerCase();
   return REASONING_EFFORT_VALUES.includes(normalized as ReasoningEffort)
     ? (normalized as ReasoningEffort)
+    : "auto";
+};
+
+const SERVICE_TIER_VALUES = [
+  "auto",
+  "default",
+  "priority",
+  "fast",
+  "flex",
+] as const;
+
+type ServiceTier = (typeof SERVICE_TIER_VALUES)[number];
+
+const SERVICE_TIER_OPTIONS = SERVICE_TIER_VALUES.join("|");
+
+const normalizeServiceTier = (value: unknown): ServiceTier => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return SERVICE_TIER_VALUES.includes(normalized as ServiceTier)
+    ? (normalized as ServiceTier)
     : "auto";
 };
 
@@ -1570,9 +1591,11 @@ class ConfigManager {
       currentChatTag: "",
       currentChatModel: "",
       currentChatReasoningEffort: "auto",
+      currentChatServiceTier: "auto",
       currentSearchTag: "",
       currentSearchModel: "",
       currentSearchReasoningEffort: "auto",
+      currentSearchServiceTier: "auto",
       currentImageTag: "",
       currentImageModel: "",
       currentVideoTag: "",
@@ -1684,6 +1707,12 @@ class ConfigManager {
     );
     cfg.currentSearchReasoningEffort = normalizeReasoningEffort(
       cfg.currentSearchReasoningEffort,
+    );
+    cfg.currentChatServiceTier = normalizeServiceTier(
+      cfg.currentChatServiceTier,
+    );
+    cfg.currentSearchServiceTier = normalizeServiceTier(
+      cfg.currentSearchServiceTier,
     );
     if (!cfg.currentImageTag && cfg.currentChatTag)
       cfg.currentImageTag = cfg.currentChatTag;
@@ -2672,6 +2701,7 @@ class AIService implements ConfigChangeListener {
             ctx.modeConfig,
             ctx.config.prompt || "",
             ctx.config.currentChatReasoningEffort,
+            ctx.config.currentChatServiceTier,
             ctx.token,
           ),
         search: async (ctx) =>
@@ -2683,6 +2713,7 @@ class AIService implements ConfigChangeListener {
             ctx.modeConfig,
             ctx.config.prompt || "",
             ctx.config.currentSearchReasoningEffort,
+            ctx.config.currentSearchServiceTier,
             ctx.token,
             true,
           ),
@@ -2796,6 +2827,7 @@ class AIService implements ConfigChangeListener {
     modeConfig: ProviderModeConfig,
     systemPrompt: string,
     reasoningEffort: ReasoningEffort,
+    serviceTier: ServiceTier,
     token?: AbortToken,
     isSearch = false,
   ): Promise<{
@@ -2831,6 +2863,8 @@ class AIService implements ConfigChangeListener {
     const sys = (systemPrompt || "").trim();
     const effectiveReasoningEffort =
       reasoningEffort === "auto" ? undefined : reasoningEffort;
+    const effectiveServiceTier =
+      serviceTier === "auto" ? undefined : serviceTier;
     let data: any;
 
     if (providerConfig.responses) {
@@ -2846,6 +2880,7 @@ class AIService implements ConfigChangeListener {
       if (effectiveReasoningEffort) {
         data.reasoning = { effort: effectiveReasoningEffort };
       }
+      if (effectiveServiceTier) data.service_tier = effectiveServiceTier;
       if (sys) data.instructions = sys;
       if (isSearch) {
         data.tools = [{ type: "web_search" }];
@@ -2882,6 +2917,7 @@ class AIService implements ConfigChangeListener {
       if (effectiveReasoningEffort) {
         data.reasoning_effort = effectiveReasoningEffort;
       }
+      if (effectiveServiceTier) data.service_tier = effectiveServiceTier;
 
       if (isSearch) {
         data.tools = [
@@ -4089,9 +4125,11 @@ class ModelFeature extends BaseFeatureHandler {
           `💬 chat 配置: <code>${config.currentChatTag || "未设置"}</code>\n` +
           `🧠 chat 模型: <code>${config.currentChatModel || "未设置"}</code>\n` +
           `💭 chat 思考强度: <code>${config.currentChatReasoningEffort}</code>\n` +
+          `⚡ chat 服务等级: <code>${config.currentChatServiceTier}</code>\n` +
           `🔎 search 配置: <code>${config.currentSearchTag || "未设置"}</code>\n` +
           `📚 search 模型: <code>${config.currentSearchModel || "未设置"}</code>\n` +
           `💭 search 思考强度: <code>${config.currentSearchReasoningEffort}</code>\n` +
+          `⚡ search 服务等级: <code>${config.currentSearchServiceTier}</code>\n` +
           `🖼️ image 配置: <code>${config.currentImageTag || "未设置"}</code>\n` +
           `🎨 image 模型: <code>${config.currentImageModel || "未设置"}</code>\n` +
           `🎬 video 配置: <code>${config.currentVideoTag || "未设置"}</code>\n` +
@@ -4191,6 +4229,56 @@ class ReasoningFeature extends BaseFeatureHandler {
     await this.editMessage(
       msg,
       `✅ ${mode} 思考强度已设置为 <code>${effort}</code>`,
+    );
+  }
+}
+
+class ServiceTierFeature extends BaseFeatureHandler {
+  readonly name = "服务等级";
+  readonly command = "service";
+  readonly description = "设置聊天或搜索请求的服务等级";
+
+  constructor(configManagerPromise: Promise<ConfigManager>) {
+    super(configManagerPromise);
+  }
+
+  async execute(
+    msg: Api.Message,
+    args: string[],
+    _prefixes: string[],
+  ): Promise<void> {
+    const configManager = await this.getConfigManager();
+    const config = configManager.getConfig();
+
+    if (args.length < 2) {
+      await this.editMessage(
+        msg,
+        `⚡ <b>当前服务等级:</b>\n\n` +
+          `chat: <code>${config.currentChatServiceTier}</code>\n` +
+          `search: <code>${config.currentSearchServiceTier}</code>`,
+      );
+      return;
+    }
+
+    const mode = args[1]?.toLowerCase();
+    const tier = args[2]?.toLowerCase();
+    requireUser(mode === "chat" || mode === "search", "模式必须是 chat 或 search");
+    requireUser(
+      SERVICE_TIER_VALUES.includes(tier as ServiceTier),
+      `服务等级必须是 ${SERVICE_TIER_OPTIONS}`,
+    );
+
+    await configManager.updateConfig((cfg) => {
+      if (mode === "chat") {
+        cfg.currentChatServiceTier = tier as ServiceTier;
+      } else {
+        cfg.currentSearchServiceTier = tier as ServiceTier;
+      }
+    });
+
+    await this.editMessage(
+      msg,
+      `✅ ${mode} 服务等级已设置为 <code>${tier}</code>`,
     );
   }
 }
@@ -5111,6 +5199,7 @@ class AIPlugin extends Plugin {
     this.featureRegistry.register(new ConfigFeature(this.configManagerPromise));
     this.featureRegistry.register(new ModelFeature(this.configManagerPromise));
     this.featureRegistry.register(new ReasoningFeature(this.configManagerPromise));
+    this.featureRegistry.register(new ServiceTierFeature(this.configManagerPromise));
     this.featureRegistry.register(new PromptFeature(this.configManagerPromise));
     this.featureRegistry.register(
       new CollapseFeature(this.configManagerPromise),
@@ -5165,6 +5254,8 @@ class AIPlugin extends Plugin {
 • <code>${mainPrefix}ai model video tag model-path</code> - 设置视频模型
 • <code>${mainPrefix}ai reasoning chat auto|none|minimal|low|medium|high|xhigh</code> - 设置聊天思考强度
 • <code>${mainPrefix}ai reasoning search auto|none|minimal|low|medium|high|xhigh</code> - 设置搜索思考强度
+• <code>${mainPrefix}ai service chat auto|default|priority|fast|flex</code> - 设置聊天服务等级
+• <code>${mainPrefix}ai service search auto|default|priority|fast|flex</code> - 设置搜索服务等级
 
 <b>💬 提问:</b>
 • <code>${mainPrefix}ai input</code> - 向 AI 发起提问
@@ -5277,6 +5368,17 @@ class AIPlugin extends Plugin {
         description: "仅在明确选择时向 Chat Completions 或 Responses API 发送思考强度"
       },
       {
+        key: "currentChatServiceTier",
+        label: "聊天服务等级",
+        type: "select",
+        options: SERVICE_TIER_VALUES.map((value) => ({
+          value,
+          label: value === "auto" ? "auto（不指定）" : value,
+        })),
+        default: "auto",
+        description: "priority/fast 使用更高优先级处理，具体价格由 API 服务商决定"
+      },
+      {
         key: "currentSearchTag",
         label: "当前搜索Tag",
         type: "string",
@@ -5298,6 +5400,17 @@ class AIPlugin extends Plugin {
         })),
         default: "auto",
         description: "仅在明确选择时向 Chat Completions 或 Responses API 发送思考强度"
+      },
+      {
+        key: "currentSearchServiceTier",
+        label: "搜索服务等级",
+        type: "select",
+        options: SERVICE_TIER_VALUES.map((value) => ({
+          value,
+          label: value === "auto" ? "auto（不指定）" : value,
+        })),
+        default: "auto",
+        description: "priority/fast 使用更高优先级处理，具体价格由 API 服务商决定"
       },
       {
         key: "currentImageTag",
@@ -5407,6 +5520,12 @@ class AIPlugin extends Plugin {
         );
         cfg.currentSearchReasoningEffort = normalizeReasoningEffort(
           cfg.currentSearchReasoningEffort,
+        );
+        cfg.currentChatServiceTier = normalizeServiceTier(
+          cfg.currentChatServiceTier,
+        );
+        cfg.currentSearchServiceTier = normalizeServiceTier(
+          cfg.currentSearchServiceTier,
         );
       });
     },
