@@ -62,6 +62,11 @@ async function getDB(): Promise<Low<NodeSeekData>> {
   return dbInstance;
 }
 
+async function writeDB(db: Low<NodeSeekData>): Promise<void> {
+  await db.write();
+  if (process.platform !== "win32") fs.chmodSync(DB_PATH, 0o600);
+}
+
 // random=true 表示随机鸡腿奖励（论坛默认收益更高也更随机），改成 false 则为固定档位
 const SIGN_RANDOM = true;
 const MAX_RETRY = 3;
@@ -245,9 +250,34 @@ async function signInOnce(cookie: string): Promise<SignResult> {
       }
     }
 
-    // NodeSeek 签到接口的约定：成功/失败都用 HTTP 200 返回，真正的状态在 JSON 的
-    // code / retcode / success 字段里。401 才代表 Cookie 过期。因此**先解析业务码**，
-    // 仅当完全无法解析 JSON 时才退回到状态码判断。
+    let data: any = {};
+    let parsedJson = false;
+    try {
+      data = JSON.parse(rawBody);
+      parsedJson = true;
+    } catch {
+      // 非 JSON 响应会在业务码检查后按 HTTP 状态或 WAF 特征处理。
+    }
+
+    const payload = data && typeof data === "object" ? data : {};
+    // 兼容多种业务码字段
+    const code = payload.code ?? payload.retcode ?? payload.status;
+    const success = payload.success === true || payload.code === 1 || payload.retcode === 1;
+    const msg: string = payload.message || payload.msg || payload.reason || "";
+
+    // 登录态失效的多种措辞
+    if (/未登录|登录已过期|请先登录|not.*login|unauthorized|invalid.*cookie|cookie/i.test(msg) || code === 401 || code === 4001 || code === 1001) {
+      return { result: "invalid", msg: msg || "Cookie 已失效，请重新获取" };
+    }
+    if (success || /鸡腿|签到成功|成功签到/.test(msg)) {
+      return { result: "success", msg: msg || "签到成功" };
+    }
+    if (/已完成签到|已签到|今天已签到|已经签到/.test(msg) || code === 0) {
+      return { result: "already", msg: msg || "今日已签到" };
+    }
+
+    // NodeSeek 可能用 HTTP 500 返回“今天已完成签到”等合法业务 JSON，
+    // 所以必须先检查业务结果，再把未识别的非 200 响应视为传输层错误。
     if (status !== 200) {
       const isWaf = looksLikeWafChallenge(serverHeader, rawBody);
       const snippet = rawBody.replace(/\s+/g, " ").trim().slice(0, 200);
@@ -263,11 +293,7 @@ async function signInOnce(cookie: string): Promise<SignResult> {
       };
     }
 
-    let data: any = {};
-    try {
-      data = JSON.parse(rawBody);
-    } catch {
-      // 200 但响应不是合法 JSON：可能是 WAF 挑战页或网关错误
+    if (!parsedJson) {
       const isWaf = looksLikeWafChallenge(serverHeader, rawBody);
       return {
         result: "error",
@@ -276,21 +302,6 @@ async function signInOnce(cookie: string): Promise<SignResult> {
       };
     }
 
-    // 兼容多种业务码字段
-    const code = data.code ?? data.retcode ?? data.status;
-    const success = data.success === true || data.code === 1 || data.retcode === 1;
-    const msg: string = data.message || data.msg || data.reason || "";
-
-    // 登录态失效的多种措辞
-    if (/未登录|登录已过期|请先登录|not.*login|unauthorized|invalid.*cookie|cookie/i.test(msg) || code === 401 || code === 4001 || code === 1001) {
-      return { result: "invalid", msg: msg || "Cookie 已失效，请重新获取" };
-    }
-    if (success || /鸡腿|签到成功|成功签到/.test(msg)) {
-      return { result: "success", msg: msg || "签到成功" };
-    }
-    if (/已完成签到|已签到|今天已签到|已经签到/.test(msg) || code === 0) {
-      return { result: "already", msg: msg || "今日已签到" };
-    }
     // 兜底：业务码明确报错
     return {
       result: "fail",
@@ -370,7 +381,7 @@ class NodeSeekPlugin extends Plugin {
           }
           db.data.cookie = cookie;
           db.data.lastDoneDate = "";
-          await db.write();
+          await writeDB(db);
           await msg.edit({
             text: "🍪 Cookie 已保存，可以用 <code>.nodeseek now</code> 测试签到了",
             parseMode: "html",
@@ -392,7 +403,7 @@ class NodeSeekPlugin extends Plugin {
           if (info.result !== "fail" && info.result !== "error") {
             db.data.lastDoneDate = todayStr();
           }
-          await db.write();
+          await writeDB(db);
           const diagLine = info.diag ? `\n\n<code>${info.diag.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code>` : "";
           await msg.edit({
             text: `${EMOJI[info.result]} <b>${TITLE[info.result]}</b>\n${info.msg}${diagLine}`,
@@ -423,7 +434,7 @@ class NodeSeekPlugin extends Plugin {
             return;
           }
           db.data.autoEnabled = onOff === "on";
-          await db.write();
+          await writeDB(db);
           await msg.edit({
             text: db.data.autoEnabled ? "✅ 已开启每日自动签到" : "⏹️ 已关闭每日自动签到",
           });
@@ -459,7 +470,7 @@ class NodeSeekPlugin extends Plugin {
         if (info.result !== "fail" && info.result !== "error") {
           db.data.lastDoneDate = todayStr();
         }
-        await db.write();
+        await writeDB(db);
 
         try {
           await client.sendMessage("me", {
