@@ -366,7 +366,7 @@ class UAIPlugin extends Plugin {
                 return;
             }
 
-            if (subCmd === "add" && !(await requireSavedMessages(msg))) return;
+            if (["add", "del"].includes(subCmd) && !(await requireSavedMessages(msg))) return;
 
             const parts = rawBody.split(/\s+/);
             const db = await getDB();

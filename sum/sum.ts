@@ -1254,6 +1254,8 @@ class SummaryPlugin extends Plugin {
       const requiresSavedMessages =
         guardSub === "config" &&
           (guardTokens[1]?.toLowerCase() === "add" ||
+            guardTokens[1]?.toLowerCase() === "del" ||
+            guardTokens[1]?.toLowerCase() === "rm" ||
             (guardTokens[1]?.toLowerCase() === "set" &&
               guardTokens[3]?.toLowerCase() === "key"));
       if (requiresSavedMessages && !(await requireSavedMessages(msg))) return;
