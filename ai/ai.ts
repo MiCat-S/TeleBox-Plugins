@@ -41,8 +41,10 @@ interface DB {
   configs: Record<string, ProviderConfig>;
   currentChatTag: string;
   currentChatModel: string;
+  currentChatReasoningEffort: ReasoningEffort;
   currentSearchTag: string;
   currentSearchModel: string;
+  currentSearchReasoningEffort: ReasoningEffort;
   currentImageTag: string;
   currentImageModel: string;
   currentVideoTag: string;
@@ -61,6 +63,27 @@ interface DB {
     list: TelegraphItem[];
   };
 }
+
+const REASONING_EFFORT_VALUES = [
+  "auto",
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+] as const;
+
+type ReasoningEffort = (typeof REASONING_EFFORT_VALUES)[number];
+
+const REASONING_EFFORT_OPTIONS = REASONING_EFFORT_VALUES.join("|");
+
+const normalizeReasoningEffort = (value: unknown): ReasoningEffort => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return REASONING_EFFORT_VALUES.includes(normalized as ReasoningEffort)
+    ? (normalized as ReasoningEffort)
+    : "auto";
+};
 
 type AIContentPart =
   | { type: "text"; text: string }
@@ -1546,8 +1569,10 @@ class ConfigManager {
       configs: {},
       currentChatTag: "",
       currentChatModel: "",
+      currentChatReasoningEffort: "auto",
       currentSearchTag: "",
       currentSearchModel: "",
+      currentSearchReasoningEffort: "auto",
       currentImageTag: "",
       currentImageModel: "",
       currentVideoTag: "",
@@ -1654,6 +1679,12 @@ class ConfigManager {
       cfg.currentSearchTag = cfg.currentChatTag;
     if (!cfg.currentSearchModel && cfg.currentChatModel)
       cfg.currentSearchModel = cfg.currentChatModel;
+    cfg.currentChatReasoningEffort = normalizeReasoningEffort(
+      cfg.currentChatReasoningEffort,
+    );
+    cfg.currentSearchReasoningEffort = normalizeReasoningEffort(
+      cfg.currentSearchReasoningEffort,
+    );
     if (!cfg.currentImageTag && cfg.currentChatTag)
       cfg.currentImageTag = cfg.currentChatTag;
     if (!cfg.currentImageModel && cfg.currentChatModel)
@@ -2640,6 +2671,7 @@ class AIService implements ConfigChangeListener {
             ctx.images,
             ctx.modeConfig,
             ctx.config.prompt || "",
+            ctx.config.currentChatReasoningEffort,
             ctx.token,
           ),
         search: async (ctx) =>
@@ -2650,6 +2682,7 @@ class AIService implements ConfigChangeListener {
             ctx.images,
             ctx.modeConfig,
             ctx.config.prompt || "",
+            ctx.config.currentSearchReasoningEffort,
             ctx.token,
             true,
           ),
@@ -2762,6 +2795,7 @@ class AIService implements ConfigChangeListener {
     images: AIContentPart[],
     modeConfig: ProviderModeConfig,
     systemPrompt: string,
+    reasoningEffort: ReasoningEffort,
     token?: AbortToken,
     isSearch = false,
   ): Promise<{
@@ -2795,6 +2829,8 @@ class AIService implements ConfigChangeListener {
     });
 
     const sys = (systemPrompt || "").trim();
+    const effectiveReasoningEffort =
+      reasoningEffort === "auto" ? undefined : reasoningEffort;
     let data: any;
 
     if (providerConfig.responses) {
@@ -2807,6 +2843,9 @@ class AIService implements ConfigChangeListener {
             : question,
         stream: providerConfig.stream,
       };
+      if (effectiveReasoningEffort) {
+        data.reasoning = { effort: effectiveReasoningEffort };
+      }
       if (sys) data.instructions = sys;
       if (isSearch) {
         data.tools = [{ type: "web_search" }];
@@ -2840,6 +2879,9 @@ class AIService implements ConfigChangeListener {
         messages,
         stream: providerConfig.stream,
       };
+      if (effectiveReasoningEffort) {
+        data.reasoning_effort = effectiveReasoningEffort;
+      }
 
       if (isSearch) {
         data.tools = [
@@ -4046,8 +4088,10 @@ class ModelFeature extends BaseFeatureHandler {
         `🤖 <b>当前 AI 配置:</b>\n\n` +
           `💬 chat 配置: <code>${config.currentChatTag || "未设置"}</code>\n` +
           `🧠 chat 模型: <code>${config.currentChatModel || "未设置"}</code>\n` +
+          `💭 chat 思考强度: <code>${config.currentChatReasoningEffort}</code>\n` +
           `🔎 search 配置: <code>${config.currentSearchTag || "未设置"}</code>\n` +
           `📚 search 模型: <code>${config.currentSearchModel || "未设置"}</code>\n` +
+          `💭 search 思考强度: <code>${config.currentSearchReasoningEffort}</code>\n` +
           `🖼️ image 配置: <code>${config.currentImageTag || "未设置"}</code>\n` +
           `🎨 image 模型: <code>${config.currentImageModel || "未设置"}</code>\n` +
           `🎬 video 配置: <code>${config.currentVideoTag || "未设置"}</code>\n` +
@@ -4097,6 +4141,56 @@ class ModelFeature extends BaseFeatureHandler {
     await this.editMessage(
       msg,
       `✅ ${modeLabel} 已切换到:\n\n🏷️ 配置: <code>${tag}</code>\n🧠 模型: <code>${model}</code>`,
+    );
+  }
+}
+
+class ReasoningFeature extends BaseFeatureHandler {
+  readonly name = "思考强度";
+  readonly command = "reasoning";
+  readonly description = "设置聊天或搜索模型的思考强度";
+
+  constructor(configManagerPromise: Promise<ConfigManager>) {
+    super(configManagerPromise);
+  }
+
+  async execute(
+    msg: Api.Message,
+    args: string[],
+    _prefixes: string[],
+  ): Promise<void> {
+    const configManager = await this.getConfigManager();
+    const config = configManager.getConfig();
+
+    if (args.length < 2) {
+      await this.editMessage(
+        msg,
+        `💭 <b>当前思考强度:</b>\n\n` +
+          `chat: <code>${config.currentChatReasoningEffort}</code>\n` +
+          `search: <code>${config.currentSearchReasoningEffort}</code>`,
+      );
+      return;
+    }
+
+    const mode = args[1]?.toLowerCase();
+    const effort = args[2]?.toLowerCase();
+    requireUser(mode === "chat" || mode === "search", "模式必须是 chat 或 search");
+    requireUser(
+      REASONING_EFFORT_VALUES.includes(effort as ReasoningEffort),
+      `思考强度必须是 ${REASONING_EFFORT_OPTIONS}`,
+    );
+
+    await configManager.updateConfig((cfg) => {
+      if (mode === "chat") {
+        cfg.currentChatReasoningEffort = effort as ReasoningEffort;
+      } else {
+        cfg.currentSearchReasoningEffort = effort as ReasoningEffort;
+      }
+    });
+
+    await this.editMessage(
+      msg,
+      `✅ ${mode} 思考强度已设置为 <code>${effort}</code>`,
     );
   }
 }
@@ -5016,6 +5110,7 @@ class AIPlugin extends Plugin {
   private registerFeatures(): void {
     this.featureRegistry.register(new ConfigFeature(this.configManagerPromise));
     this.featureRegistry.register(new ModelFeature(this.configManagerPromise));
+    this.featureRegistry.register(new ReasoningFeature(this.configManagerPromise));
     this.featureRegistry.register(new PromptFeature(this.configManagerPromise));
     this.featureRegistry.register(
       new CollapseFeature(this.configManagerPromise),
@@ -5068,6 +5163,8 @@ class AIPlugin extends Plugin {
 • <code>${mainPrefix}ai model search tag model-path</code> - 设置搜索模型
 • <code>${mainPrefix}ai model image tag model-path</code> - 设置图片模型
 • <code>${mainPrefix}ai model video tag model-path</code> - 设置视频模型
+• <code>${mainPrefix}ai reasoning chat auto|none|minimal|low|medium|high|xhigh</code> - 设置聊天思考强度
+• <code>${mainPrefix}ai reasoning search auto|none|minimal|low|medium|high|xhigh</code> - 设置搜索思考强度
 
 <b>💬 提问:</b>
 • <code>${mainPrefix}ai input</code> - 向 AI 发起提问
@@ -5169,6 +5266,17 @@ class AIPlugin extends Plugin {
         description: "聊天使用的模型名称"
       },
       {
+        key: "currentChatReasoningEffort",
+        label: "聊天思考强度",
+        type: "select",
+        options: REASONING_EFFORT_VALUES.map((value) => ({
+          value,
+          label: value === "auto" ? "auto（服务端默认）" : value,
+        })),
+        default: "auto",
+        description: "仅在明确选择时向 Chat Completions 或 Responses API 发送思考强度"
+      },
+      {
         key: "currentSearchTag",
         label: "当前搜索Tag",
         type: "string",
@@ -5179,6 +5287,17 @@ class AIPlugin extends Plugin {
         label: "当前搜索模型",
         type: "string",
         description: "搜索使用的模型名称"
+      },
+      {
+        key: "currentSearchReasoningEffort",
+        label: "搜索思考强度",
+        type: "select",
+        options: REASONING_EFFORT_VALUES.map((value) => ({
+          value,
+          label: value === "auto" ? "auto（服务端默认）" : value,
+        })),
+        default: "auto",
+        description: "仅在明确选择时向 Chat Completions 或 Responses API 发送思考强度"
       },
       {
         key: "currentImageTag",
@@ -5276,13 +5395,20 @@ class AIPlugin extends Plugin {
       },
     ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<ProviderConfig>(path.join(createDirectoryInAssets("ai"), "config.json"), {} as any);
-      return db.data as unknown as Record<string, unknown>;
+      const configManager = await this.configManagerPromise;
+      return configManager.getConfig() as unknown as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<ProviderConfig>(path.join(createDirectoryInAssets("ai"), "config.json"), {} as any);
-      Object.assign(db.data, patch);
-      await db.write();
+      const configManager = await this.configManagerPromise;
+      await configManager.updateConfig((cfg) => {
+        Object.assign(cfg, patch);
+        cfg.currentChatReasoningEffort = normalizeReasoningEffort(
+          cfg.currentChatReasoningEffort,
+        );
+        cfg.currentSearchReasoningEffort = normalizeReasoningEffort(
+          cfg.currentSearchReasoningEffort,
+        );
+      });
     },
   };
 }

@@ -39,6 +39,27 @@ function formatDate(date: Date): string {
 
 type ProviderProtocol = "auto" | "chat" | "responses" | "gemini" | "anthropic";
 
+const REASONING_EFFORT_VALUES = [
+  "auto",
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+] as const;
+
+type ReasoningEffort = (typeof REASONING_EFFORT_VALUES)[number];
+
+const REASONING_EFFORT_OPTIONS = REASONING_EFFORT_VALUES.join("|");
+
+function normalizeReasoningEffort(value: unknown): ReasoningEffort {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return REASONING_EFFORT_VALUES.includes(normalized as ReasoningEffort)
+    ? (normalized as ReasoningEffort)
+    : "auto";
+}
+
 type CustomProvider = {
   name: string;
   base_url: string;
@@ -54,6 +75,7 @@ type AIConfig = {
   default_prompt?: string;
   default_spoiler?: boolean;
   default_timeout?: number;
+  default_reasoning_effort?: ReasoningEffort;
   reply_mode?: boolean;
   max_output_length?: number;
   link_preview?: boolean;
@@ -142,6 +164,7 @@ async function getDB() {
       default_provider: "openai",
       default_prompt: DEFAULT_PROMPT,
       default_spoiler: false,
+      default_reasoning_effort: "auto",
     },
   });
 
@@ -151,6 +174,7 @@ async function getDB() {
       providers: {},
       default_provider: "openai",
       default_prompt: DEFAULT_PROMPT,
+      default_reasoning_effort: "auto",
     };
   }
 
@@ -163,6 +187,9 @@ async function getDB() {
   if (db.data.aiConfig.link_preview === undefined) {
     db.data.aiConfig.link_preview = false;
   }
+  db.data.aiConfig.default_reasoning_effort = normalizeReasoningEffort(
+    db.data.aiConfig.default_reasoning_effort,
+  );
   for (const provider of Object.values(db.data.aiConfig.providers)) {
     if (!provider.type || provider.type === "openai") provider.type = "auto";
   }
@@ -373,11 +400,21 @@ async function callChatCompletions(
   baseUrl: string,
   model: string,
   input: string,
+  reasoningEffort: ReasoningEffort,
   timeout: number,
 ): Promise<string> {
+  const payload: Record<string, unknown> = {
+    model,
+    messages: [{ role: "user", content: input }],
+    max_tokens: 2000,
+  };
+  if (reasoningEffort !== "auto") {
+    payload.reasoning_effort = reasoningEffort;
+  }
+
   const response = await axios.post(
     `${normalizedBaseUrl(baseUrl)}/v1/chat/completions`,
-    { model, messages: [{ role: "user", content: input }], max_tokens: 2000 },
+    payload,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -397,16 +434,22 @@ async function callResponses(
   baseUrl: string,
   model: string,
   input: string,
+  reasoningEffort: ReasoningEffort,
   timeout: number,
 ): Promise<string> {
+  const payload: Record<string, unknown> = {
+    model,
+    input: [{ role: "user", content: [{ type: "input_text", text: input }] }],
+    max_output_tokens: 2000,
+    store: false,
+  };
+  if (reasoningEffort !== "auto") {
+    payload.reasoning = { effort: reasoningEffort };
+  }
+
   const response = await axios.post(
     `${normalizedBaseUrl(baseUrl)}/v1/responses`,
-    {
-      model,
-      input: [{ role: "user", content: [{ type: "input_text", text: input }] }],
-      max_output_tokens: 2000,
-      store: false,
-    },
+    payload,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -483,6 +526,7 @@ async function callWithProtocol(
   protocol: Exclude<ProviderProtocol, "auto">,
   provider: CustomProvider,
   input: string,
+  reasoningEffort: ReasoningEffort,
   timeout: number,
 ): Promise<string> {
   switch (protocol) {
@@ -492,6 +536,7 @@ async function callWithProtocol(
         provider.base_url,
         provider.model,
         input,
+        reasoningEffort,
         timeout,
       );
     case "gemini":
@@ -516,6 +561,7 @@ async function callWithProtocol(
         provider.base_url,
         provider.model,
         input,
+        reasoningEffort,
         timeout,
       );
   }
@@ -538,13 +584,20 @@ async function callAI(
   provider: CustomProvider,
   messages: string,
   prompt: string,
+  reasoningEffort: ReasoningEffort,
   timeout: number,
 ): Promise<string> {
   const input = `${prompt}\n\n${messages}`;
   const protocol = detectProtocol(provider);
 
   try {
-    return await callWithProtocol(protocol, provider, input, timeout);
+    return await callWithProtocol(
+      protocol,
+      provider,
+      input,
+      reasoningEffort,
+      timeout,
+    );
   } catch (error) {
     // 仅在网关明确不支持当前端点时，尝试 OpenAI 兼容接口。
     if (
@@ -552,7 +605,13 @@ async function callAI(
       protocol !== "chat" &&
       canTryFallback(error)
     ) {
-      return callWithProtocol("chat", provider, input, timeout);
+      return callWithProtocol(
+        "chat",
+        provider,
+        input,
+        reasoningEffort,
+        timeout,
+      );
     }
     throw error;
   }
@@ -897,7 +956,13 @@ async function summarizeMessages(
   }
 
   try {
-    const aiResponse = await callAI(provider, messages, prompt, timeout);
+    const aiResponse = await callAI(
+      provider,
+      messages,
+      prompt,
+      aiConfig.default_reasoning_effort || "auto",
+      timeout,
+    );
     return { success: true, result: aiResponse };
   } catch (aiErr: any) {
     return { success: false, error: `AI 调用失败: ${apiErrorDetail(aiErr)}` };
@@ -1090,6 +1155,9 @@ const help_text = `▎群消息总结
 
 <code>${mainPrefix}sum config set preview off</code>
 关闭链接预览（默认关闭）；改为 <code>on</code> 可开启。
+
+<code>${mainPrefix}sum config set reasoning auto|none|minimal|low|medium|high|xhigh</code>
+设置 OpenAI Chat Completions/Responses 接口的思考强度；<code>auto</code> 使用服务端默认值。
 
 <code>${mainPrefix}sum config set prompt &lt;提示词&gt;</code>
 设置默认总结提示词；<code>${mainPrefix}sum config set prompt reset</code> 恢复内置详细版。
@@ -1776,6 +1844,9 @@ class SummaryPlugin extends Plugin {
               `默认推送: ${codeTag(db.data.defaultPushTarget || "me")}`,
             );
             lines.push(`默认提示词: ${promptStatus(cfg.default_prompt)}`);
+            lines.push(
+              `思考强度: ${codeTag(cfg.default_reasoning_effort || "auto")}`,
+            );
             lines.push(`链接预览: ${cfg.link_preview ? "开启" : "关闭"}`);
 
             await msg.edit({ text: lines.join("\n"), parseMode: "html" });
@@ -1901,6 +1972,26 @@ class SummaryPlugin extends Plugin {
               await db.write();
               await msg.edit({
                 text: `✅ 链接预览已${enabled === "on" ? "开启" : "关闭"}`,
+              });
+              return;
+            }
+
+            if (name === "reasoning") {
+              const effort = prop?.toLowerCase();
+              if (
+                !REASONING_EFFORT_VALUES.includes(effort as ReasoningEffort)
+              ) {
+                await msg.edit({
+                  text: `❌ 思考强度必须是 ${REASONING_EFFORT_OPTIONS}`,
+                });
+                return;
+              }
+              db.data.aiConfig.default_reasoning_effort =
+                effort as ReasoningEffort;
+              await db.write();
+              await msg.edit({
+                text: `✅ 思考强度已设置为 ${codeTag(effort)}`,
+                parseMode: "html",
               });
               return;
             }
@@ -2145,6 +2236,17 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
             "description": "AI 请求超时时间"
       },
       {
+            "key": "default_reasoning_effort",
+            "label": "思考强度",
+            "type": "select",
+            "options": REASONING_EFFORT_VALUES.map((value) => ({
+              value,
+              label: value === "auto" ? "auto（服务端默认）" : value,
+            })),
+            "default": "auto",
+            "description": "仅对 OpenAI Chat Completions/Responses 接口生效"
+      },
+      {
             "key": "default_spoiler",
             "label": "默认使用 Spoiler",
             "type": "boolean",
@@ -2179,6 +2281,9 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await getDB();
       Object.assign(db.data.aiConfig, patch);
+      db.data.aiConfig.default_reasoning_effort = normalizeReasoningEffort(
+        db.data.aiConfig.default_reasoning_effort,
+      );
       await db.write();
     },
   };
