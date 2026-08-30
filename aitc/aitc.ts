@@ -3,6 +3,7 @@ import { Api } from "teleproto";
 import axios from "axios";
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
@@ -54,6 +55,14 @@ const CONFIG_DB_PATH = path.join(
   "aitc_config.db",
 );
 
+async function requireSavedMessages(msg: Api.Message): Promise<boolean> {
+  if ((msg as any).savedPeerId) return true;
+  await msg.edit({
+    text: "⚠️ 涉及 API Key 的配置或调用仅限在「收藏夹」中使用",
+  });
+  return false;
+}
+
 class ConfigManager {
   private static db: Database.Database | null = null;
   private static initialized = false;
@@ -62,6 +71,7 @@ class ConfigManager {
     if (this.initialized) return;
     try {
       this.db = new Database(CONFIG_DB_PATH);
+      if (process.platform !== "win32") fs.chmodSync(CONFIG_DB_PATH, 0o600);
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS config (
           key TEXT PRIMARY KEY,
@@ -230,6 +240,9 @@ async function handleAitcCommand(msg: Api.Message): Promise<void> {
     );
     return;
   }
+
+  const keyCommands = new Set(["key", "apikey", "_set_key"]);
+  if (keyCommands.has(subcommand) && !(await requireSavedMessages(msg))) return;
 
   const subcommandToken = parts[0] || "";
   const subcommandValue = rest.slice(subcommandToken.length).trimStart();
@@ -475,6 +488,7 @@ async function handleAitcCommand(msg: Api.Message): Promise<void> {
     } else if (error.message) {
       message = error.message;
     }
+    if (apiKey) message = message.split(apiKey).join("***");
     if (message.length > 200) {
       message = message.slice(0, 200) + "...";
     }

@@ -24,7 +24,10 @@ const execFileAsync = promisify(execFile);
 const GH_BASE_DOWNLOAD = "https://github.com/OpenListTeam/OpenList/releases/latest/download";
 
 const codeTag = (text: unknown): string => `<code>${htmlEscape(text)}</code>`;
-const preTag = (text: unknown): string => `<pre>${htmlEscape(text)}</pre>`;
+const redactPasswordOutput = (text: unknown): string =>
+  String(text ?? "")
+    .replace(/((?:password|passwd|密码)\s*[:=]\s*)\S+/gi, "$1********")
+    .replace(/((?:new\s+)?password\s+(?:is|to)\s*:?\s*)\S+/gi, "$1********");
 
 /**
  * 将 Telegram 提供的文件名压缩为一个安全路径段。
@@ -279,7 +282,7 @@ class OpenListPlugin extends Plugin {
       lines.push(`访问: http://${ip || "服务器IP"}:5244/`);
       if (username && password) {
         lines.push(`账号: ${username}`);
-        lines.push(`密码: ${password}`);
+        lines.push("密码: 已保存（不回显）");
       }
       await msg.edit({ text: lines.join("\n") });
     } catch (error: any) {
@@ -490,12 +493,13 @@ class OpenListPlugin extends Plugin {
       // 更新本地凭证
       if (newUser || newPass) {
         await this.updateStoredCredentials(newUser, newPass);
-        await msg.edit({ text: `执行结果:\n\n${preTag((stdout || "").trim())}\n\n✅ 凭证已同步更新`, parseMode: "html" });
+        const userLine = newUser ? `\n用户名: ${codeTag(newUser)}` : "";
+        await msg.edit({ text: `✅ 管理命令执行成功${userLine}\n凭证已同步更新，密码不回显`, parseMode: "html" });
       } else {
-        await msg.edit({ text: `执行结果:\n\n${preTag((stdout || "").trim())}`, parseMode: "html" });
+        await msg.edit({ text: "✅ 管理命令已执行；未能解析返回的凭证，未展示原始输出" });
       }
     } catch (error: any) {
-      await msg.edit({ text: `管理命令失败: ${htmlEscape(error?.message || error)}`, parseMode: "html" });
+      await msg.edit({ text: `管理命令失败: ${htmlEscape(redactPasswordOutput(error?.message || error))}`, parseMode: "html" });
     }
   }
 
@@ -819,7 +823,7 @@ class OpenListPlugin extends Plugin {
           if (config.users && config.users.length > 0) {
             lines.push("\n<b>账户信息:</b>");
             config.users.forEach((user: any, index: number) => {
-              lines.push(`${index + 1}. <b>用户:</b> ${htmlEscape(user.username)} | <b>密码:</b> ${htmlEscape(user.password)}`);
+              lines.push(`${index + 1}. <b>用户:</b> ${htmlEscape(user.username)} | <b>密码:</b> 已配置（不回显）`);
             });
           }
         } catch (e) {

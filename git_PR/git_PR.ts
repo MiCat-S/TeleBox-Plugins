@@ -3,8 +3,8 @@ import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@uti
 import { Api } from "teleproto";
 import { getPrefixes } from "@utils/pluginManager";
 import { JSONFilePreset } from "lowdb/node";
-import * as path from "path";
-import { resolvePluginAssetFile, createDirectoryInAssets } from "@utils/pathHelpers";
+import * as fs from "fs/promises";
+import { resolvePluginAssetFile } from "@utils/pathHelpers";
 import axios from "axios";
 
 import { htmlEscape } from "@utils/htmlEscape";
@@ -68,6 +68,33 @@ const DEFAULT_CONFIG: Record<string, string> = {
   [CONFIG_KEYS.TOKEN]: "",
   [CONFIG_KEYS.API_BASE_URL]: "https://api.github.com",
 };
+const CONFIG_PATH = resolvePluginAssetFile({
+  plugin: "git_PR",
+  fileName: "config.json",
+  legacyDirs: ["git_manager", "git"],
+  legacyFiles: [
+    { dir: "git_manager", fileName: "config.json" },
+    { dir: "git", fileName: "config.json" },
+  ],
+});
+const MASKED_TOKEN = "••••••••";
+
+async function requireSavedMessages(msg: Api.Message): Promise<boolean> {
+  if ((msg as any).savedPeerId) return true;
+  await msg.edit({
+    text: "⚠️ Git Token 配置及 API 操作仅限在「收藏夹」中使用",
+  });
+  return false;
+}
+
+async function enforcePrivateConfigMode(): Promise<void> {
+  if (process.platform === "win32") return;
+  try {
+    await fs.chmod(CONFIG_PATH, 0o600);
+  } catch (error: any) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
 
 // 配置管理器
 class ConfigManager {
@@ -77,19 +104,11 @@ class ConfigManager {
   private static async init(): Promise<void> {
     if (this.initialized) return;
     try {
-      const configPath = resolvePluginAssetFile({
-        plugin: "git_PR",
-        fileName: "config.json",
-        legacyDirs: ["git_manager", "git"],
-        legacyFiles: [
-          { dir: "git_manager", fileName: "config.json" },
-          { dir: "git", fileName: "config.json" },
-        ],
-      });
       this.db = await JSONFilePreset<Record<string, any>>(
-        configPath,
+        CONFIG_PATH,
         { ...DEFAULT_CONFIG }
       );
+      await enforcePrivateConfigMode();
       this.initialized = true;
     } catch (error) {
       console.error("[git] 初始化配置失败:", error);
@@ -107,6 +126,7 @@ class ConfigManager {
     try {
       this.db.data[key] = value;
       await this.db.write();
+      await enforcePrivateConfigMode();
       return true;
     } catch (error) {
       console.error(`[git] 设置配置失败 ${key}:`, error);
@@ -137,10 +157,9 @@ class GitManagerPlugin extends Plugin {
 
   cmdHandlers = {
     [pluginName]: async (msg: Api.Message) => {
-      const lines = msg.text?.trim()?.split(/\r?\n/g) || [];
-      const parts = lines?.[0]?.trim()?.split(/\s+/g) || [];
-      const [, ...args] = parts;
-      const sub = (args[0] || "").toLowerCase();
+      const firstLine = msg.text?.trim()?.split(/\r?\n/g)?.[0]?.trim() || "";
+      const rawBody = firstLine.replace(/^\S+\s*/, "");
+      const sub = rawBody.match(/^(\S+)/)?.[1]?.toLowerCase() || "";
 
       try {
         // 无参数：显示帮助
@@ -154,6 +173,11 @@ class GitManagerPlugin extends Plugin {
           await sendLongMessage(msg, help_text);
           return;
         }
+
+        if (!(await requireSavedMessages(msg))) return;
+
+        const parts = firstLine.split(/\s+/g);
+        const [, ...args] = parts;
 
         // help 在后：.git [sub] help
         if (args[1] && (args[1].toLowerCase() === "help" || args[1].toLowerCase() === "h")) {
@@ -182,7 +206,11 @@ class GitManagerPlugin extends Plugin {
         }
       } catch (error: any) {
         console.error('[git] 插件执行失败:', error);
-        await msg.edit({ text: `❌ <b>操作失败:</b> ${htmlEscape(error.message)}`, parseMode: "html" });
+        const token = await ConfigManager.get(CONFIG_KEYS.TOKEN);
+        const safeError = token
+          ? String(error.message).split(token).join("***")
+          : String(error.message);
+        await msg.edit({ text: `❌ <b>操作失败:</b> ${htmlEscape(safeError)}`, parseMode: "html" });
       }
     },
   };
@@ -404,13 +432,19 @@ class GitManagerPlugin extends Plugin {
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("git_PR"), "config.json"), DEFAULT_CONFIG);
-      return db.data as Record<string, unknown>;
+      const token = await ConfigManager.get(CONFIG_KEYS.TOKEN);
+      return {
+        token: token ? MASKED_TOKEN : "",
+        baseUrl: await ConfigManager.get(CONFIG_KEYS.API_BASE_URL),
+      };
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<any>(path.join(createDirectoryInAssets("git_PR"), "config.json"), DEFAULT_CONFIG);
-      Object.assign(db.data, patch);
-      await db.write();
+      if (typeof patch.token === "string" && patch.token && patch.token !== MASKED_TOKEN) {
+        await ConfigManager.set(CONFIG_KEYS.TOKEN, patch.token);
+      }
+      if (typeof patch.baseUrl === "string") {
+        await ConfigManager.set(CONFIG_KEYS.API_BASE_URL, patch.baseUrl);
+      }
     },
   };
 }

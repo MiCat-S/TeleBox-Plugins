@@ -1271,7 +1271,7 @@ ${keysContent}`;
       }
       
       await msg.edit({
-        text: `✅ <b>Root账户已启用</b>\n\n🔑 Root密码: <code>${htmlEscape(password)}</code>\n🔓 账户状态: 已解锁\n🚪 SSH登录: 已允许\n📄 备份文件: /etc/ssh/sshd_config.backup.${currentConfig}\n\n✨ <b>现在可以直接用root登录SSH了！</b>\n\n⚠️ <b>安全提示:</b>\n• 建议设置复杂密码\n• 考虑配置SSH密钥登录\n• 可用 <code>${mainPrefix}ssh rootlogin keyonly</code> 提升安全性`,
+        text: `✅ <b>Root账户已启用</b>\n\n🔑 Root密码: 已设置（不回显）\n🔓 账户状态: 已解锁\n🚪 SSH登录: 已允许\n📄 备份文件: /etc/ssh/sshd_config.backup.${currentConfig}\n\n✨ <b>现在可以直接用root登录SSH了！</b>\n\n⚠️ <b>安全提示:</b>\n• 建议设置复杂密码\n• 考虑配置SSH密钥登录\n• 可用 <code>${mainPrefix}ssh rootlogin keyonly</code> 提升安全性`,
         parseMode: "html"
       });
       

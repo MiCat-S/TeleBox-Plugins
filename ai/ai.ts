@@ -3995,7 +3995,7 @@ class ConfigFeature extends BaseFeatureHandler {
         `🏷️ 标签: <code>${tag}</code>\n` +
         `🔗 地址: <code>${url}</code>\n` +
         `🧩 Type: <code>${formatProviderTypeLabel({ url, type })}</code>\n` +
-        `🔑 密钥: <code>${key}</code>\n` +
+        `🔑 密钥: <code>已保存（不回显）</code>\n` +
         `🌊 Stream: <code>off</code>\n` +
         `🧠 Responses(chat/search): <code>off</code>`,
     );

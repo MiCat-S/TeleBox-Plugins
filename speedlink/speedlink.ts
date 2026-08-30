@@ -1,4 +1,3 @@
-import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { Api } from "teleproto";
 import { execSync, execFile, ChildProcess, spawn } from "child_process";
@@ -240,6 +239,7 @@ const KEY_PATH = path.join(ASSETS_DIR, "secret.key");
 const CONFIG_PATH = path.join(ASSETS_DIR, "config.json");
 const SPEEDTEST_PATH = path.join(ASSETS_DIR, "speedtest");
 const SPEEDTEST_VERSION = "1.2.0";
+const MASKED_CREDENTIAL = "••••••••";
 
 // --- Load/Save configuration ---
 function loadConfig(): { timeout?: number } {
@@ -313,11 +313,26 @@ function getEncryptionKey(): string {
 const ENCRYPTION_KEY = getEncryptionKey();
 const IV_LENGTH = 16;
 let db: any = null;
-if (Database) {
-  db = new Database(DB_PATH);
-  db.exec(
+function initializeDatabase(database: any): any {
+  database.exec(
     `CREATE TABLE IF NOT EXISTS servers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, host TEXT NOT NULL, port INTEGER NOT NULL, username TEXT NOT NULL, auth_method TEXT NOT NULL, credentials TEXT NOT NULL)`
   );
+  return database;
+}
+
+function getServersDatabase(): any {
+  if (db) return db;
+  try {
+    const DatabaseConstructor = Database ?? require("better-sqlite3");
+    db = initializeDatabase(new DatabaseConstructor(DB_PATH));
+    return db;
+  } catch (error: any) {
+    throw new Error(`SpeedLink 数据库不可用: ${error?.message || error}`);
+  }
+}
+
+if (Database) {
+  db = initializeDatabase(new Database(DB_PATH));
 }
 
 function encrypt(text: string): string {
@@ -1039,65 +1054,127 @@ class SpeedlinkPlugin extends Plugin {
     icon: "🔗",
     getSchema: (): PanelSettingField[] => [
       {
-            "key": "name",
-            "label": "服务器名称",
-            "type": "string",
-            "description": "Speedlink 服务器名称标识"
+        key: "servers",
+        label: "服务器配置",
+        type: "provider-list",
+        providerColumns: "name|host|port|username|auth_method|credentials",
+        providerAddLabel: "+ 添加服务器",
+        description:
+          "每行一个服务器，用 | 分隔：名称 | 主机 | 端口 | 用户名 | 认证方式 | 凭据。认证方式为 password 或 key；凭据留空或保持遮罩表示不修改。",
       },
       {
-            "key": "host",
-            "label": "主机地址",
-            "type": "string",
-            "placeholder": "192.168.1.100",
-            "description": "Speedlink 服务器地址"
+        key: "timeout",
+        label: "测速超时（秒）",
+        type: "number",
+        min: 10,
+        max: 600,
+        default: 300,
+        description: "单次测速允许的最长时间",
       },
-      {
-            "key": "port",
-            "label": "端口",
-            "type": "number",
-            "min": 1,
-            "max": 65535,
-            "default": 22,
-            "description": "SSH 连接端口"
-      },
-      {
-            "key": "username",
-            "label": "用户名",
-            "type": "string",
-            "description": "SSH 登录用户名"
-      },
-      {
-            "key": "auth_method",
-            "label": "认证方式",
-            "type": "select",
-            "options": [
-                  {
-                        "value": "password",
-                        "label": "密码"
-                  },
-                  {
-                        "value": "key",
-                        "label": "密钥"
-                  }
-            ],
-            "description": "SSH 认证方式"
-      },
-      {
-            "key": "credentials",
-            "label": "凭据",
-            "type": "password",
-            "secret": true,
-            "description": "密码或密钥内容"
-      }
-],
+    ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key"), {} as any);
-      return db.data as unknown as Record<string, unknown>;
+      const database = getServersDatabase();
+      const servers = database
+        .prepare("SELECT * FROM servers ORDER BY id")
+        .all() as ServerConfig[];
+      const configuredTimeout = Number(loadConfig().timeout);
+
+      return {
+        servers: servers
+          .map((server) =>
+            [
+              server.name,
+              server.host,
+              server.port,
+              server.username,
+              server.auth_method,
+              MASKED_CREDENTIAL,
+            ].join(" | ")
+          )
+          .join("\n"),
+        timeout:
+          Number.isFinite(configuredTimeout) && configuredTimeout > 0
+            ? configuredTimeout / 1000
+            : DEFAULT_TIMEOUT / 1000,
+      };
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key"), {} as any);
-      Object.assign(db.data, patch);
-      await db.write();
+      if (patch.timeout !== undefined) {
+        const timeoutSeconds = Number(patch.timeout);
+        if (!Number.isFinite(timeoutSeconds) || timeoutSeconds < 10 || timeoutSeconds > 600) {
+          throw new Error("测速超时必须在 10 到 600 秒之间");
+        }
+        DEFAULT_TIMEOUT = Math.round(timeoutSeconds * 1000);
+        saveConfig({ ...loadConfig(), timeout: DEFAULT_TIMEOUT });
+      }
+
+      if (patch.servers === undefined) return;
+      if (typeof patch.servers !== "string") {
+        throw new Error("服务器配置格式无效");
+      }
+
+      const database = getServersDatabase();
+      const existingServers = database
+        .prepare("SELECT * FROM servers ORDER BY id")
+        .all() as ServerConfig[];
+      const existingByName = new Map(existingServers.map((server) => [server.name, server]));
+      const names = new Set<string>();
+      const servers = patch.servers
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line, index) => {
+          const parts = line.split("|");
+          const [name = "", host = "", portText = "", username = "", authMethod = ""] =
+            parts.slice(0, 5).map((part) => part.trim());
+          const credentialInput = parts.slice(5).join("|").trim();
+          const port = Number(portText);
+
+          if (!name || !host || !username || !["password", "key"].includes(authMethod)) {
+            throw new Error(`第 ${index + 1} 行服务器配置不完整`);
+          }
+          if (!Number.isInteger(port) || port < 1 || port > 65535) {
+            throw new Error(`第 ${index + 1} 行端口必须在 1 到 65535 之间`);
+          }
+          if (names.has(name)) {
+            throw new Error(`服务器名称重复: ${name}`);
+          }
+          names.add(name);
+
+          const existing = existingByName.get(name);
+          let credentials: string;
+          if (!credentialInput || credentialInput === MASKED_CREDENTIAL) {
+            if (!existing) {
+              throw new Error(`新服务器 ${name} 必须提供凭据`);
+            }
+            if (existing.auth_method !== authMethod) {
+              throw new Error(`服务器 ${name} 修改认证方式时必须提供新凭据`);
+            }
+            credentials = existing.credentials;
+          } else {
+            credentials = authMethod === "password" ? encrypt(credentialInput) : credentialInput;
+          }
+
+          return { name, host, port, username, auth_method: authMethod, credentials };
+        });
+
+      const replaceServers = database.transaction((nextServers: Array<Omit<ServerConfig, "id">>) => {
+        database.prepare("DELETE FROM servers").run();
+        const insert = database.prepare(
+          "INSERT INTO servers (name, host, port, username, auth_method, credentials) VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        for (const server of nextServers) {
+          insert.run(
+            server.name,
+            server.host,
+            server.port,
+            server.username,
+            server.auth_method,
+            server.credentials
+          );
+        }
+      });
+      replaceServers(servers);
     },
   };
 }

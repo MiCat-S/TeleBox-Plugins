@@ -6,6 +6,7 @@ import { cronManager } from "@utils/cronManager";
 import * as cron from "cron";
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
+import * as fs from "fs/promises";
 import { getGlobalClient } from "@utils/runtimeManager";
 import axios from "axios";
 import { safeGetMessages } from "@utils/safeGetMessages";
@@ -19,6 +20,23 @@ const filePath = path.join(
   createDirectoryInAssets("sum"),
   "summary_config.json",
 );
+
+async function requireSavedMessages(msg: Api.Message): Promise<boolean> {
+  if ((msg as any).savedPeerId) return true;
+  await msg.edit({
+    text: "⚠️ 涉及 API Key 的配置或调用仅限在「收藏夹」中使用",
+  });
+  return false;
+}
+
+async function enforcePrivateConfigMode(): Promise<void> {
+  if (process.platform === "win32") return;
+  try {
+    await fs.chmod(filePath, 0o600);
+  } catch (error: any) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
 
 function codeTag(value: any): string {
   return `<code>${htmlEscape(value)}</code>`;
@@ -219,6 +237,13 @@ async function getDB() {
     if (!provider.type || provider.type === "openai") provider.type = "auto";
   }
 
+  await enforcePrivateConfigMode();
+  const write = db.write.bind(db);
+  db.write = async () => {
+    await write();
+    await enforcePrivateConfigMode();
+  };
+
   return db;
 }
 
@@ -413,11 +438,14 @@ function detectProtocol(
   return "chat";
 }
 
-function apiErrorDetail(error: unknown): string {
+function apiErrorDetail(error: unknown, secret?: string): string {
+  let detail: string;
   if (axios.isAxiosError(error)) {
-    return JSON.stringify(error.response?.data ?? error.message);
+    detail = JSON.stringify(error.response?.data ?? error.message);
+  } else {
+    detail = String((error as any)?.message ?? error);
   }
-  return String((error as any)?.message ?? error);
+  return secret ? detail.split(secret).join("***") : detail;
 }
 
 async function callChatCompletions(
@@ -1001,7 +1029,10 @@ async function summarizeMessages(
     );
     return { success: true, result: aiResponse };
   } catch (aiErr: any) {
-    return { success: false, error: `AI 调用失败: ${apiErrorDetail(aiErr)}` };
+    return {
+      success: false,
+      error: `AI 调用失败: ${apiErrorDetail(aiErr, provider.api_key)}`,
+    };
   }
 }
 
@@ -1217,6 +1248,16 @@ class SummaryPlugin extends Plugin {
 
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     sum: async (msg: Api.Message) => {
+      const rawBody = (msg.message || "").trim().replace(/^\S+\s*/, "");
+      const guardTokens = rawBody.split(/\s+/, 4);
+      const guardSub = (guardTokens[0] || "").toLowerCase();
+      const requiresSavedMessages =
+        guardSub === "config" &&
+          (guardTokens[1]?.toLowerCase() === "add" ||
+            (guardTokens[1]?.toLowerCase() === "set" &&
+              guardTokens[3]?.toLowerCase() === "key"));
+      if (requiresSavedMessages && !(await requireSavedMessages(msg))) return;
+
       const parts = msg.message?.trim()?.split(/\s+/) || [];
       const [, sub, ...args] = parts;
 
@@ -2346,11 +2387,14 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await getDB();
-      return db.data.aiConfig as Record<string, unknown>;
+      const { providers: _providers, ...safeConfig } = db.data.aiConfig;
+      return safeConfig as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await getDB();
-      Object.assign(db.data.aiConfig, patch);
+      const safePatch = { ...patch };
+      delete safePatch.providers;
+      Object.assign(db.data.aiConfig, safePatch);
       db.data.aiConfig.default_reasoning_effort = normalizeReasoningEffort(
         db.data.aiConfig.default_reasoning_effort,
       );

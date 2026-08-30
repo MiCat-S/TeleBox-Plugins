@@ -9,6 +9,7 @@ import { Api } from "teleproto";
 import axios from "axios";
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
+import * as fs from "fs/promises";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { TelegramFormatter } from "@utils/telegramFormatter";
@@ -58,6 +59,29 @@ const DEFAULT_CONFIG: UAIConfig = {
     collapse: true // 默认折叠
 };
 
+async function requireSavedMessages(msg: Api.Message): Promise<boolean> {
+    if ((msg as any).savedPeerId) return true;
+    await msg.edit({ text: "⚠️ 涉及 API Key 的配置或调用仅限在「收藏夹」中使用" });
+    return false;
+}
+
+async function enforcePrivateConfigMode(): Promise<void> {
+    if (process.platform === "win32") return;
+    try {
+        await fs.chmod(DB_PATH, 0o600);
+    } catch (error: any) {
+        if (error?.code !== "ENOENT") throw error;
+    }
+}
+
+function redactProviderSecrets(text: unknown, providers: Record<string, Provider>): string {
+    let result = String(text ?? "");
+    for (const provider of Object.values(providers)) {
+        if (provider.api_key) result = result.split(provider.api_key).join("***");
+    }
+    return result;
+}
+
 // ========== 工具函数 ==========
 // 应用折叠功能
 const applyWrap = (s: string, collapse?: boolean): string => {
@@ -105,6 +129,12 @@ async function getDB() {
     if (!db.data.prompts) db.data.prompts = {};
     if (!db.data.timeout) db.data.timeout = DEFAULT_TIMEOUT;
     if (typeof db.data.collapse !== "boolean") db.data.collapse = false;
+    await enforcePrivateConfigMode();
+    const write = db.write.bind(db);
+    db.write = async () => {
+        await write();
+        await enforcePrivateConfigMode();
+    };
     return db;
 }
 
@@ -327,16 +357,19 @@ class UAIPlugin extends Plugin {
     cmdHandlers = {
         uai: async (msg: Api.Message) => {
             const text = (msg.message || "").trim();
-            const parts = text.split(/\s+/).slice(1);
-            const subCmd = parts[0]?.toLowerCase() || "";
-
-            const db = await getDB();
+            const rawBody = text.replace(/^\S+\s*/, "");
+            const subCmd = rawBody.match(/^(\S+)/)?.[1]?.toLowerCase() || "";
 
             // 帮助
-            if (!subCmd || subCmd === "help") {
+            if (!rawBody || /^help\s*$/i.test(rawBody)) {
                 await msg.edit({ text: getHelpText(), parseMode: "html" });
                 return;
             }
+
+            if (subCmd === "add" && !(await requireSavedMessages(msg))) return;
+
+            const parts = rawBody.split(/\s+/);
+            const db = await getDB();
 
             // 折叠开关配置
             if (subCmd === "collapse") {
@@ -631,7 +664,8 @@ class UAIPlugin extends Plugin {
                 await client.sendMessage(chatPeerId, { message: resultText, parseMode: "html" });
 
             } catch (err: any) {
-                await msg.edit({ text: `❌ 错误: ${htmlEscape(err.message || String(err))}`, parseMode: "html" });
+                const safeError = redactProviderSecrets(err.message || String(err), db.data.providers);
+                await msg.edit({ text: `❌ 错误: ${htmlEscape(safeError)}`, parseMode: "html" });
             }
         }
     };
@@ -668,12 +702,18 @@ class UAIPlugin extends Plugin {
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<UAIConfig>(path.join(createDirectoryInAssets("uai"), "config.json"), DEFAULT_CONFIG);
-      return db.data as Record<string, unknown>;
+      const db = await getDB();
+      return {
+        default_provider: db.data.default_provider,
+        timeout: db.data.timeout,
+        collapse: db.data.collapse,
+      };
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<UAIConfig>(path.join(createDirectoryInAssets("uai"), "config.json"), DEFAULT_CONFIG);
-      Object.assign(db.data, patch);
+      const db = await getDB();
+      for (const key of ["default_provider", "timeout", "collapse"] as const) {
+        if (patch[key] !== undefined) (db.data as any)[key] = patch[key];
+      }
       await db.write();
     },
   };
