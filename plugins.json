@@ -16,7 +16,7 @@
     "desc": "机场Aff信息管理"
   },
   "ai": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/ai/ai.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/ai/ai.ts",
     "desc": "ai聚合"
   },
   "aitc": {
@@ -436,7 +436,7 @@
     "desc": "订阅链接信息查询"
   },
   "sum": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/sum/sum.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/sum/sum.ts",
     "desc": "群消息总结"
   },
   "t": {
