@@ -1,18 +1,18 @@
 {
   "aban": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/aban/aban.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/aban/aban.ts",
     "desc": "高级封禁管理"
   },
   "acron": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/acron/acron.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/acron/acron.ts",
     "desc": "定时发送/转发/复制/置顶/取消置顶/删除消息/执行命令"
   },
   "admin_board": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/admin_board/admin_board.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/admin_board/admin_board.ts",
     "desc": "管理员排行榜 末位淘汰"
   },
   "aff": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/aff/aff.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/aff/aff.ts",
     "desc": "机场Aff信息管理"
   },
   "ai": {
@@ -20,419 +20,419 @@
     "desc": "ai聚合"
   },
   "aitc": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/aitc/aitc.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/aitc/aitc.ts",
     "desc": "AI Prompt 转写"
   },
   "annualreport": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/annualreport/annualreport.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/annualreport/annualreport.ts",
     "desc": "年度报告"
   },
   "atadmins": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/atadmins/atadmins.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/atadmins/atadmins.ts",
     "desc": "一键艾特全部管理员"
   },
   "atall": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/atall/atall.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/atall/atall.ts",
     "desc": "一键艾特全部成员"
   },
   "audio_to_voice": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/audio_to_voice/audio_to_voice.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/audio_to_voice/audio_to_voice.ts",
     "desc": "音乐转音频"
   },
   "autochangename": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/autochangename/autochangename.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/autochangename/autochangename.ts",
     "desc": "自动定时修改用户名"
   },
   "autodel": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/autodel/autodel.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/autodel/autodel.ts",
     "desc": "定时删除消息"
   },
   "autodelcmd": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/autodelcmd/autodelcmd.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/autodelcmd/autodelcmd.ts",
     "desc": "自动删除命令消息"
   },
   "autorepeat": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/autorepeat/autorepeat.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/autorepeat/autorepeat.ts",
     "desc": "智能自动复读机"
   },
   "banana": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/banana/banana.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/banana/banana.ts",
     "desc": "Nano-Banana 图像编辑"
   },
   "bgp": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/bgp/bgp.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/bgp/bgp.ts",
     "desc": "BGP路由图查询工具"
   },
   "biko": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/biko/biko.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/biko/biko.ts",
     "desc": "批量获取整理发送指定对话中指定用户的消息"
   },
   "bin": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/bin/bin.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/bin/bin.ts",
     "desc": "卡头检测"
   },
   "bizhi": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/bizhi/bizhi.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/bizhi/bizhi.ts",
     "desc": "发送一张壁纸"
   },
   "botmzt": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/botmzt/botmzt.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/botmzt/botmzt.ts",
     "desc": "随机获取写真图片"
   },
   "bs": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/bs/bs.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/bs/bs.ts",
     "desc": "保送"
   },
   "bulk_delete": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/bulk_delete/bulk_delete.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/bulk_delete/bulk_delete.ts",
     "desc": "批量删除消息"
   },
   "calc": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/calc/calc.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/calc/calc.ts",
     "desc": "计算器"
   },
   "checkapi": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/checkapi/checkapi.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/checkapi/checkapi.ts",
     "desc": "API Key 全功能检测"
   },
   "checkin": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/checkin/checkin.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/checkin/checkin.ts",
     "desc": "自动签到插件"
   },
   "clean": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/clean/clean.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/clean/clean.ts",
     "desc": "账号清理工具 Pro"
   },
   "clean_member": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/clean_member/clean_member.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/clean_member/clean_member.ts",
     "desc": "群组成员清理"
   },
   "clear_sticker": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/clear_sticker/clear_sticker.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/clear_sticker/clear_sticker.ts",
     "desc": "批量删除群组内贴纸"
   },
   "codex_image": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/codex_image/codex_image.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/codex_image/codex_image.ts",
     "desc": "通过codex调用gpt-image-2"
   },
   "convert": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/convert/convert.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/convert/convert.ts",
     "desc": "视频转音频"
   },
   "copy_sticker_set": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/copy_sticker_set/copy_sticker_set.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/copy_sticker_set/copy_sticker_set.ts",
     "desc": "复制贴纸包"
   },
   "cosplay": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/cosplay/cosplay.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/cosplay/cosplay.ts",
     "desc": "获取随机cos写真"
   },
   "crazy4": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/crazy4/crazy4.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/crazy4/crazy4.ts",
     "desc": "疯狂星期四文案"
   },
   "cy": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/cy/cy.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/cy/cy.ts",
     "desc": "词云"
   },
   "da": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/da/da.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/da/da.ts",
     "desc": "删除群内所有消息"
   },
   "dbdj": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/dbdj/dbdj.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/dbdj/dbdj.ts",
     "desc": "点兵点将 - 从最近的消息中随机抽取指定人数的用户"
   },
   "dc": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/dc/dc.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/dc/dc.ts",
     "desc": "获取实体DC"
   },
   "deepwiki": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/deepwiki/deepwiki.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/deepwiki/deepwiki.ts",
     "desc": "DeepWiki多项目聚合"
   },
   "dig": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/dig/dig.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/dig/dig.ts",
     "desc": "DNS 查询"
   },
   "diss": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/diss/diss.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/diss/diss.ts",
     "desc": "儒雅随和版祖安语录"
   },
   "dme": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/dme/dme.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/dme/dme.ts",
     "desc": "删除指定数量的自己发送的消息"
   },
   "duckduckgo": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/duckduckgo/duckduckgo.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/duckduckgo/duckduckgo.ts",
     "desc": "DuckDuckGo 搜索"
   },
   "eat": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/eat/eat.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/eat/eat.ts",
     "desc": "生成带头像表情包"
   },
   "eatgif": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/eatgif/eatgif.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/eatgif/eatgif.ts",
     "desc": "生成\"吃掉\"动图表情包"
   },
   "encode": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/encode/encode.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/encode/encode.ts",
     "desc": "简单的编码解码"
   },
   "epic": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/epic/epic.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/epic/epic.ts",
     "desc": "检查Epic Games喜加一优惠"
   },
   "exec": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox_Plugins/blob/main/exec/exec.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/exec/exec.ts",
     "desc": "运行命令"
   },
   "fadian": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/fadian/fadian.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/fadian/fadian.ts",
     "desc": "fadian语录"
   },
   "fbi": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/fbi/fbi.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/fbi/fbi.ts",
     "desc": "欢迎加入联邦调查局"
   },
   "getstickers": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/getstickers/getstickers.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/getstickers/getstickers.ts",
     "desc": "下载整个贴纸包"
   },
   "gif": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/gif/gif.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/gif/gif.ts",
     "desc": "GIF与视频转贴纸"
   },
   "git_PR": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/git_PR/git_PR.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/git_PR/git_PR.ts",
     "desc": "Git PR 管理"
   },
   "goodnight": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/goodnight/goodnight.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/goodnight/goodnight.ts",
     "desc": "自动统计晚安/早安"
   },
   "gt": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/gt/gt.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/gt/gt.ts",
     "desc": "谷歌中英文互译"
   },
   "his": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/his/his.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/his/his.ts",
     "desc": "查看被回复者最近消息"
   },
   "hitokoto": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/hitokoto/hitokoto.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/hitokoto/hitokoto.ts",
     "desc": "获取随机一言"
   },
   "httpcat": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/httpcat/httpcat.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/httpcat/httpcat.ts",
     "desc": "发送一张http状态码主题的猫猫图片"
   },
   "ids": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/ids/ids.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/ids/ids.ts",
     "desc": "用户信息显示以及跳转链接"
   },
   "im": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/im/im.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/im/im.ts",
     "desc": "图片监控插件"
   },
   "ip": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/ip/ip.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/ip/ip.ts",
     "desc": "IP 地址查询"
   },
   "isalive": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/isalive/isalive.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/isalive/isalive.ts",
     "desc": "活了么"
   },
   "javdb": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/javdb/javdb.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/javdb/javdb.ts",
     "desc": "寻找番号封面"
   },
   "jupai": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/jupai/jupai.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/jupai/jupai.ts",
     "desc": "举牌小人"
   },
   "keep_online": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/keep_online/keep_online.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/keep_online/keep_online.ts",
     "desc": "保活自动重启(测试版) 请查看说明操作"
   },
   "keyword": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/keyword/keyword.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/keyword/keyword.ts",
     "desc": "关键词自动回复"
   },
   "kkp": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/kkp/kkp.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/kkp/kkp.ts",
     "desc": "获取NSFW视频"
   },
   "komari": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/komari/komari.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/komari/komari.ts",
     "desc": "Komari 服务器监控"
   },
   "listusernames": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/listusernames/listusernames.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/listusernames/listusernames.ts",
     "desc": "列出属于自己的公开群组/频道"
   },
   "lottery": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/lottery/lottery.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/lottery/lottery.ts",
     "desc": "抽奖"
   },
   "lu_bs": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/lu_bs/lu_bs.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/lu_bs/lu_bs.ts",
     "desc": "鲁小迅整点报时"
   },
   "manage_admin": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/manage_admin/manage_admin.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/manage_admin/manage_admin.ts",
     "desc": "管理管理员"
   },
   "mode": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/mode/mode.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/mode/mode.ts",
     "desc": "自定义消息格式"
   },
   "moyu": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/moyu/moyu.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/moyu/moyu.ts",
     "desc": "摸鱼日报"
   },
   "music": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/music/music.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/music/music.ts",
     "desc": "YouTube音乐"
   },
   "music_bot": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/music_bot/music_bot.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/music_bot/music_bot.ts",
     "desc": "多音源音乐搜索"
   },
   "music_hub": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/music_hub/music_hub.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/music_hub/music_hub.ts",
     "desc": "多音源音乐搜索下载插件"
   },
   "netease": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/netease/netease.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/netease/netease.ts",
     "desc": "网易云音乐"
   },
   "news": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/news/news.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/news/news.ts",
     "desc": "每日新闻"
   },
   "nezha": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/nezha/nezha.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/nezha/nezha.ts",
     "desc": "哪吒监控"
   },
   "nodeseek": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/nodeseek/nodeseek.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/nodeseek/nodeseek.ts",
     "desc": "NodeSeek 论坛每日签到，领取鸡腿"
   },
   "ntp": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/ntp/ntp.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/ntp/ntp.ts",
     "desc": "NTP 时间同步"
   },
   "openlist": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/openlist/openlist.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/openlist/openlist.ts",
     "desc": "openlist管理"
   },
   "oxost": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/oxost/oxost.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/oxost/oxost.ts",
     "desc": "回复聊天中的文件与媒体 得到一个临时的下载链接"
   },
   "pangu": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/pangu/pangu.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/pangu/pangu.ts",
     "desc": "消息自动pangu化"
   },
   "paolu": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/paolu/paolu.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/paolu/paolu.ts",
     "desc": "群组一键跑路"
   },
   "parsehub": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/parsehub/parsehub.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/parsehub/parsehub.ts",
     "desc": "社交媒体链接解析助手"
   },
   "pic_to_sticker": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/pic_to_sticker/pic_to_sticker.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/pic_to_sticker/pic_to_sticker.ts",
     "desc": "图片转表情"
   },
   "pmcaptcha": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/pmcaptcha/pmcaptcha.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/pmcaptcha/pmcaptcha.ts",
     "desc": "简单防私聊"
   },
   "portball": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/portball/portball.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/portball/portball.ts",
     "desc": "临时禁言"
   },
   "premium": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/premium/premium.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/premium/premium.ts",
     "desc": "群组大会员统计"
   },
   "qr": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/qr/qr.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/qr/qr.ts",
     "desc": "QR 二维码"
   },
   "quote": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/quote/quote.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/quote/quote.ts",
     "desc": "引用贴纸生成（本地 glass：语音/文件/音频行、视频角标、stories/image；.q help）"
   },
   "rate": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/rate/rate.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/rate/rate.ts",
     "desc": "货币实时汇率查询与计算"
   },
   "restore_pin": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/restore_pin/restore_pin.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/restore_pin/restore_pin.ts",
     "desc": "恢复群组被取消的置顶消息"
   },
   "rev": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/rev/rev.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/rev/rev.ts",
     "desc": "反转你的消息"
   },
   "save": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/save/save.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/save/save.ts",
     "desc": "突破限制保存/转发消息"
   },
   "say": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/say/say.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/say/say.ts",
     "desc": "自动语音合成 (MiMo / 火山豆包 / Fish)，每会话独立开关"
   },
   "search": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/search/search.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/search/search.ts",
     "desc": "频道消息搜索"
   },
   "sendat": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/sendat/sendat.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/sendat/sendat.ts",
     "desc": "定时消息发送插件"
   },
   "service": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/service/service.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/service/service.ts",
     "desc": "systemd服务状态查看"
   },
   "shift": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/shift/shift.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/shift/shift.ts",
     "desc": "智能消息转发系统"
   },
   "soutu": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/soutu/soutu.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/soutu/soutu.ts",
     "desc": "soutu搜图"
   },
   "speedlink": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/speedlink/speedlink.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/speedlink/speedlink.ts",
     "desc": "对其他服务器测速"
   },
   "speedtest": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/speedtest/speedtest.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/speedtest/speedtest.ts",
     "desc": "网络速度测试"
   },
   "ssh": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/ssh/ssh.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/ssh/ssh.ts",
     "desc": "ssh管理"
   },
   "sticker": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/sticker/sticker.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/sticker/sticker.ts",
     "desc": "偷表情"
   },
   "sticker_to_pic": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/sticker_to_pic/sticker_to_pic.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/sticker_to_pic/sticker_to_pic.ts",
     "desc": "表情转图片"
   },
   "sub": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/sub/sub.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/sub/sub.ts",
     "desc": "substore简单管理"
   },
   "subinfo": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/subinfo/subinfo.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/subinfo/subinfo.ts",
     "desc": "订阅链接信息查询"
   },
   "sum": {
@@ -440,55 +440,55 @@
     "desc": "群消息总结"
   },
   "t": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/t/t.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/t/t.ts",
     "desc": "文字转语音"
   },
   "teletype": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/teletype/teletype.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/teletype/teletype.ts",
     "desc": "打字机效果"
   },
   "theme": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/theme/theme.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/theme/theme.ts",
     "desc": "Telegram 主题转换"
   },
   "tmp_admin": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/tmp_admin/tmp_admin.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/tmp_admin/tmp_admin.ts",
     "desc": "临时管理员"
   },
   "trace": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/trace/trace.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/trace/trace.ts",
     "desc": "全局追踪点赞"
   },
   "tts": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/tts/tts.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/tts/tts.ts",
     "desc": "Azure文字转语音"
   },
   "uai": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/uai/uai.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/uai/uai.ts",
     "desc": "引用消息 AI 分析"
   },
   "warp": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/warp/warp.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/warp/warp.ts",
     "desc": "warp管理"
   },
   "weather": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/weather/weather.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/weather/weather.ts",
     "desc": "天气查询"
   },
   "whois": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/whois/whois.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/whois/whois.ts",
     "desc": "域名查询"
   },
   "xmsl": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/xmsl/xmsl.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/xmsl/xmsl.ts",
     "desc": "全自动羡慕"
   },
   "yinglish": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/yinglish/yinglish.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/yinglish/yinglish.ts",
     "desc": "淫语翻译"
   },
   "yt-dlp": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/yt-dlp/yt-dlp.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/yt-dlp/yt-dlp.ts",
     "desc": "YouTube 视频下载"
   },
   "yvlu": {
@@ -496,11 +496,11 @@
     "desc": "语录贴纸：语音/文件/音频行、转发标签、管理员头衔、视频/GIF 角标；支持 webp/image/stories 输出"
   },
   "zhijiao": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/zhijiao/zhijiao.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/zhijiao/zhijiao.ts",
     "desc": "掷筊 强随机 使用 笅杯卦辞廿七句"
   },
   "zpr": {
-    "url": "https://github.com/TeleBoxOrg/TeleBox-Plugins/blob/main/zpr/zpr.ts?raw=true",
+    "url": "https://raw.githubusercontent.com/MiCat-S/TeleBox-Plugins/codex-reasoning-effort-source/zpr/zpr.ts",
     "desc": "二次元图片"
   }
 }
