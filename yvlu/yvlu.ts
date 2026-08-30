@@ -627,6 +627,22 @@ const help_text = [
   ),
   ``,
   helpFold(
+    `- 伪造消息`,
+    [
+      `使用 <code>${commandName} f 伪造消息</code> 回复一条消息`,
+      `使用 <code>${commandName} fr 伪造消息</code> 回复一条消息并包含回复内容`,
+    ].join("\n"),
+  ),
+  ``,
+  helpFold(
+    `- 伪造发送者`,
+    [
+      `使用 <code>${commandName} u 用户ID/用户名 [消息数]</code> 回复一条消息`,
+      `使用 <code>${commandName} ur 用户ID/用户名 [消息数]</code> 回复一条消息并包含回复内容`,
+    ].join("\n"),
+  ),
+  ``,
+  helpFold(
     `- 输出格式（默认 webp 贴纸）`,
     [
       `使用 <code>${commandName} webp</code> - 静态 WebP 贴纸`,
@@ -937,6 +953,10 @@ class YvluPlugin extends Plugin {
       let valid = false;
       let saveToSet = false;
       let outputFormat: string | undefined = undefined; // webp / image / stories
+      let fakeMsg:
+        | { message: string; entities: Api.TypeMessageEntity[] }
+        | undefined;
+      let fakeSender: any;
 
       // 处理配置命令
       if (args[1] === "config") {
@@ -955,6 +975,58 @@ class YvluPlugin extends Plugin {
         } else {
           count = parseInt(args[2]) || 1;
         }
+        valid = true;
+      } else if (["u", "ur"].includes(args[1]) && args[2]) {
+        r = args[1] === "ur";
+        count = parseInt(args[3]) || 1;
+        try {
+          fakeSender = await msg.client?.getEntity(args[2]);
+          if (!fakeSender) throw new Error("未找到用户");
+          valid = true;
+        } catch {
+          await msg.edit({
+            text: `无法获取 ${codeTag(args[2])} 的信息，请检查用户ID/用户名是否正确`,
+            parseMode: "html",
+          });
+          return;
+        }
+      } else if (["f", "fr"].includes(args[1]) && args[2]) {
+        r = args[1] === "fr";
+        const text = msg.message || "";
+        const match = text.match(/^(\S+)\s+fr?\s+/);
+        if (!match) {
+          await msg.edit({
+            text: `格式错误，请使用: <code>${commandName} ${args[1]} 内容</code>`,
+            parseMode: "html",
+          });
+          return;
+        }
+
+        const cutLength = match[0].length;
+        const entities = ((trigger || msg).entities || [])
+          .map((entity: Api.TypeMessageEntity) => {
+            const start = entity.offset;
+            const end = entity.offset + entity.length;
+            if (end <= cutLength) return null;
+
+            const cloned = Object.assign(
+              Object.create(Object.getPrototypeOf(entity)),
+              entity,
+            ) as Api.TypeMessageEntity;
+            if (start >= cutLength) {
+              cloned.offset = start - cutLength;
+            } else {
+              cloned.offset = 0;
+              cloned.length = end - cutLength;
+            }
+            return cloned;
+          })
+          .filter(Boolean) as Api.TypeMessageEntity[];
+
+        fakeMsg = {
+          message: text.slice(cutLength),
+          entities,
+        };
         valid = true;
       } else if (args[1] === "s") {
         saveToSet = true;
@@ -1011,10 +1083,10 @@ class YvluPlugin extends Plugin {
 
           for await (const [i, message] of messages.entries()) {
             // 获取发送者信息
-            let sender: any = await message.getSender();
+            let sender: any = fakeSender || (await message.getSender());
 
             // 如果无法获取发送者（可能是以频道身份发言），尝试从 peerId 获取
-            if (!sender) {
+            if (!sender && !fakeSender) {
               try {
                 const peerId =
                   (message as any).peerId || (message as any).fromId;
@@ -1026,7 +1098,7 @@ class YvluPlugin extends Plugin {
               }
             }
 
-            if (message.fwdFrom) {
+            if (message.fwdFrom && !fakeSender) {
               let forwardedSender =
                 message.forward?.sender || message.forward?.chat;
 
@@ -1112,6 +1184,10 @@ class YvluPlugin extends Plugin {
             }
 
             if (i === 0) {
+              if (fakeMsg) {
+                message.message = fakeMsg.message;
+                message.entities = fakeMsg.entities;
+              }
               let replyTo = (trigger || msg)?.replyTo;
               if (replyTo?.quoteText) {
                 message.message = replyTo.quoteText;
