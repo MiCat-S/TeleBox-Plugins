@@ -49,7 +49,18 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+const MAX_AVATAR_CACHE_ENTRIES = 128;
 const avatarCache = new Map<string, Buffer | undefined>();
+
+function setAvatarCache(key: string, value: Buffer | undefined): void {
+  avatarCache.delete(key);
+  avatarCache.set(key, value);
+  while (avatarCache.size > MAX_AVATAR_CACHE_ENTRIES) {
+    const oldest = avatarCache.keys().next();
+    if (oldest.done) break;
+    avatarCache.delete(oldest.value);
+  }
+}
 
 function stableEntityKey(entity: any): string | undefined {
   const raw = entity?.id ?? entity?.userId ?? entity?.channelId ?? entity?.chatId ?? entity?.accessHash ?? entity;
@@ -79,7 +90,7 @@ async function downloadEntityAvatar(client: any, entity: any): Promise<Buffer | 
 
   const photo = fullEntity?.photo;
   if (!photo || photo._ === "userProfilePhotoEmpty" || photo._ === "chatPhotoEmpty") {
-    if (key) avatarCache.set(key, undefined);
+    if (key) setAvatarCache(key, undefined);
     return undefined;
   }
 
@@ -118,7 +129,7 @@ async function downloadEntityAvatar(client: any, entity: any): Promise<Buffer | 
 
   const [small, big] = await Promise.all([tryDownload(false), tryDownload(true)]);
   const normalized = small ? await normalizeAvatarBuffer(small) : big ? await normalizeAvatarBuffer(big) : undefined;
-  if (key) avatarCache.set(key, normalized);
+  if (key) setAvatarCache(key, normalized);
   return normalized;
 }
 
@@ -160,7 +171,7 @@ async function rawDownloadFile(client: any, location: any, dcId: number | undefi
   }
 }
 
-async function downloadMediaBuffer(client: any, target: any): Promise<Buffer | undefined> {
+export async function downloadMediaBuffer(client: any, target: any): Promise<Buffer | undefined> {
   if (!client || !target) return undefined;
   // For small media (thumbnails, static stickers, photos), try raw upload.GetFile first
   // Fall back to downloadMedia if raw download fails or isn't applicable
@@ -186,12 +197,23 @@ async function downloadMediaBuffer(client: any, target: any): Promise<Buffer | u
     console.debug("[yvlu] raw download failed, fallback to downloadMedia:", err?.message || err);
   }
   // Fallback to downloadMedia with timeout
+  const tempPath = path.join(os.tmpdir(), `yvlu_media_${Date.now()}_${Math.random().toString(16).slice(2)}`);
+  let downloadedPath: string | undefined;
   try {
-    const downloaded = await withTimeout(client.downloadMedia(target, { outputFile: path.join(os.tmpdir(), `yvlu_media_${Date.now()}_${Math.random().toString(16).slice(2)}`) }), QUOTE_RPC_TIMEOUT_MS, "downloadMediaBuffer.downloadMedia");
+    const downloaded = await withTimeout(client.downloadMedia(target, { outputFile: tempPath }), QUOTE_RPC_TIMEOUT_MS, "downloadMediaBuffer.downloadMedia");
     if (Buffer.isBuffer(downloaded)) return downloaded;
-    if (downloaded && typeof downloaded === "string" && fs.existsSync(downloaded)) return fs.readFileSync(downloaded);
+    downloadedPath = downloaded && typeof downloaded === "string" ? downloaded : tempPath;
+    if (fs.existsSync(downloadedPath)) return fs.readFileSync(downloadedPath);
   } catch (err: any) {
     console.warn("yvlu media download failed", err?.message || err);
+  } finally {
+    for (const filePath of new Set([tempPath, downloadedPath].filter((value): value is string => Boolean(value)))) {
+      try {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (cleanupError: any) {
+        console.warn("yvlu media temp cleanup failed", cleanupError?.message || cleanupError);
+      }
+    }
   }
   return undefined;
 }

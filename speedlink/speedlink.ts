@@ -1,6 +1,6 @@
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { Api } from "teleproto";
-import { execSync, execFile, ChildProcess, spawn } from "child_process";
+import { execFile, ChildProcess, spawn } from "child_process";
 import { promisify } from "util";
 import * as path from "path";
 import * as fs from "fs";
@@ -178,57 +178,14 @@ interface SpeedtestResult {
 
 // --- Dependencies ---
 let dependenciesInstalled = false;
-let isInstalling = false;
+let Database: any = null;
 try {
   require.resolve("better-sqlite3");
-  execSync("command -v sshpass");
+  Database = require("better-sqlite3");
   dependenciesInstalled = true;
 } catch (e: any) {
   dependenciesInstalled = false;
 }
-
-async function installDependencies(msg: Api.Message): Promise<void> {
-  isInstalling = true;
-  try {
-    console.log("SpeedLink Plugin: Starting async dependency installation...");
-    try {
-      require.resolve("better-sqlite3");
-    } catch (e: any) {
-      console.log("[INSTALLING] 'better-sqlite3' not found. Installing via npm...");
-      await execFileAsync("npm", ["install", "better-sqlite3"], { cwd: "/root/telebox" });
-      console.log("[SUCCESS] Installed 'better-sqlite3'.");
-    }
-    try {
-      execSync("command -v sshpass");
-    } catch (e: any) {
-      console.log("[INSTALLING] 'sshpass' not found. Installing via system package manager...");
-      if (fs.existsSync("/usr/bin/apt-get"))
-        await execFileAsync("sudo", ["apt-get", "update"], { timeout: 120000 }).then(() =>
-          execFileAsync("sudo", ["apt-get", "install", "-y", "sshpass"], { timeout: 120000 })
-        );
-      else if (fs.existsSync("/usr/bin/yum"))
-        await execFileAsync("sudo", ["yum", "install", "-y", "sshpass"], { timeout: 120000 });
-      else throw new Error("Unsupported package manager.");
-      console.log("[SUCCESS] Installed 'sshpass'.");
-    }
-    await msg.edit({
-      text: "✅ <b>依赖安装完成！</b>\n\n为了使插件生效，请现在<b>重启TeleBox</b>。",
-      parseMode: "html",
-    });
-    dependenciesInstalled = false;
-  } catch (error: any) {
-    console.error("[FATAL] Dependency installation failed:", error);
-    await msg.edit({
-      text: `❌ <b>依赖自动安装失败！</b>\n\n请检查服务器后台日志。`,
-      parseMode: "html",
-    });
-  } finally {
-    isInstalling = false;
-  }
-}
-
-let Database: any = null;
-if (dependenciesInstalled) Database = require("better-sqlite3");
 
 // --- Constants ---
 const PLUGIN_NAME = path.basename(__filename, path.extname(__filename));
@@ -329,10 +286,6 @@ function getServersDatabase(): any {
   } catch (error: any) {
     throw new Error(`SpeedLink 数据库不可用: ${error?.message || error}`);
   }
-}
-
-if (Database) {
-  db = initializeDatabase(new Database(DB_PATH));
 }
 
 function encrypt(text: string): string {
@@ -467,24 +420,17 @@ sudo yum install speedtest</code></pre>
 // --- Main handler ---
 const speedtest = async (msg: Api.Message): Promise<void> => {
   if (!dependenciesInstalled) {
-    if (isInstalling)
-      await msg.edit({
-        text: "⏳ <b>依赖已在安装中...</b>",
-        parseMode: "html",
-      });
-    else {
-      await msg.edit({
-        text: "首次运行，正在自动安装依赖...",
-        parseMode: "html",
-      });
-      installDependencies(msg);
-    }
+    await msg.edit({
+      text: "❌ <b>SpeedLink 缺少 better-sqlite3</b>\n\n请在 TeleBox 目录手动执行 <code>npm install better-sqlite3</code> 后重启。密码认证的远程测速还需要系统已安装 <code>sshpass</code>。",
+      parseMode: "html",
+    });
     return;
   }
 
   const args = msg.message.slice(2).split(" ").slice(1);
   const chatId = Number(msg.peerId?.toString());
-  const allServers: ServerConfig[] = db.prepare("SELECT * FROM servers ORDER BY id").all();
+  const getAllServers = (): ServerConfig[] =>
+    getServersDatabase().prepare("SELECT * FROM servers ORDER BY id").all() as ServerConfig[];
 
   try {
     const command = args[0] || "";
@@ -556,7 +502,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
 
         const storedCredential = authMethod === "password" ? encrypt(credential) : credential;
         try {
-          db.prepare(
+          getServersDatabase().prepare(
             "INSERT INTO servers (name, host, port, username, auth_method, credentials) VALUES (?, ?, ?, ?, ?, ?)"
           ).run(name, host, port, username, authMethod, storedCredential);
           await msg.edit({
@@ -570,7 +516,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
           });
         }
       } else if (command === "list") {
-        // const servers: ServerConfig[] = db.prepare("SELECT * FROM servers ORDER BY id").all(); // Already fetched
+        const allServers = getAllServers();
         if (allServers.length === 0) {
           await msg.edit({
             text: "ℹ️ 未配置任何远程服务器。",
@@ -586,6 +532,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
           parseMode: "html",
         });
       } else if (command === "del") {
+        const allServers = getAllServers();
         const displayId = parseInt(args[1]);
         if (isNaN(displayId) || displayId < 1) {
           await msg.edit({
@@ -594,7 +541,6 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
           });
           return;
         }
-        // const servers: ServerConfig[] = db.prepare("SELECT * FROM servers ORDER BY id").all(); // Already fetched
         const serverToDelete = allServers[displayId - 1];
         if (!serverToDelete) {
           await msg.edit({
@@ -603,7 +549,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
           });
           return;
         }
-        const info = db.prepare("DELETE FROM servers WHERE id = ?").run(serverToDelete.id);
+        const info = getServersDatabase().prepare("DELETE FROM servers WHERE id = ?").run(serverToDelete.id);
         await msg.edit({
           text:
             info.changes > 0
@@ -612,6 +558,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
           parseMode: "html",
         });
       } else if (command === "rename") { // --- New: Rename command
+        const allServers = getAllServers();
         const displayId = parseInt(args[1]);
         const newName = args.slice(2).join(" ");
         if (isNaN(displayId) || displayId < 1 || !newName) {
@@ -630,7 +577,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
           return;
         }
         try {
-          db.prepare("UPDATE servers SET name = ? WHERE id = ?").run(newName, serverToRename.id);
+          getServersDatabase().prepare("UPDATE servers SET name = ? WHERE id = ?").run(newName, serverToRename.id);
           await msg.edit({
             text: `✅ <b>重命名成功</b>\n\n原别名 <b>${htmlEscape(serverToRename.name)}</b> 已修改为 <b>${htmlEscape(newName)}</b>`,
             parseMode: "html",
@@ -693,6 +640,10 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
           ? await msg.client?.downloadMedia(repliedMsg.media)
           : null;
         if (buffer) {
+          if (db) {
+            db.close();
+            db = null;
+          }
           if (fs.existsSync(DB_PATH)) {
             fs.renameSync(DB_PATH, DB_PATH + ".bak");
           }
@@ -712,7 +663,6 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
     }
 
     // --- Speed Test Execution Logic ---
-    // const allServers: ServerConfig[] = db.prepare("SELECT * FROM servers ORDER BY id").all(); // Already fetched
     let targetServers: (ServerConfig | null)[] = [];
 
     const isAllTest = command === "all" && args[1] !== "no";
@@ -720,6 +670,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
     const isMultiTest = !isAllTest && !isExcludeTest && args.length > 0 && args.every((arg) => !isNaN(parseInt(arg)));
 
     if (isAllTest || isMultiTest || isExcludeTest) {
+      const allServers = getAllServers();
       if (isAllTest) {
         targetServers = allServers;
       } else if (isExcludeTest) {
@@ -876,6 +827,7 @@ const speedtest = async (msg: Api.Message): Promise<void> => {
     } else if (!isNaN(parseInt(command))) {
       isRemote = true;
       const displayId = parseInt(command);
+      const allServers = getAllServers();
       serverConfig = allServers[displayId - 1];
       if (!serverConfig) {
         await msg.edit({
@@ -1044,6 +996,13 @@ class SpeedlinkPlugin extends Plugin {
     speedlink: speedtest,
     sl: speedtest,
   };
+
+  cleanup(): void {
+    if (db) {
+      db.close();
+      db = null;
+    }
+  }
 
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {

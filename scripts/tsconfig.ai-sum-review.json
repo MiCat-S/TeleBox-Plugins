@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "paths": {
+      "axios": ["../../TeleBox-Core/node_modules/axios/index.d.ts"],
+      "cron": ["../../TeleBox-Core/node_modules/cron/dist/index.d.ts"],
+      "lowdb": ["../../TeleBox-Core/node_modules/lowdb/lib/index.d.ts"],
+      "lowdb/node": ["../../TeleBox-Core/node_modules/lowdb/lib/node.d.ts"],
+      "sharp": ["../../TeleBox-Core/node_modules/sharp/dist/index.d.mts"],
+      "teleproto": ["../../TeleBox-Core/node_modules/teleproto/index.d.ts"]
+    },
+    "skipLibCheck": true,
+    "strict": false,
+    "target": "es2022",
+    "typeRoots": ["../../TeleBox-Core/node_modules/@types"]
+  },
+  "include": [
+    "ai-sum-review-shims.d.ts",
+    "../ai/ai.ts",
+    "../sum/sum.ts"
+  ]
+}

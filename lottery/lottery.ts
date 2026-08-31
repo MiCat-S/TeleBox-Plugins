@@ -136,6 +136,24 @@ if (db) {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE INDEX IF NOT EXISTS idx_lottery_config_active_chat_created
+      ON lottery_config(chat_id, created_at DESC)
+      WHERE status = 'active';
+    CREATE INDEX IF NOT EXISTS idx_lottery_participants_lottery_joined
+      ON lottery_participants(lottery_id, joined_at);
+    CREATE INDEX IF NOT EXISTS idx_lottery_winners_lottery_assigned
+      ON lottery_winners(lottery_id, assigned_at);
+    CREATE INDEX IF NOT EXISTS idx_lottery_winners_lottery_user
+      ON lottery_winners(lottery_id, user_id);
+    CREATE INDEX IF NOT EXISTS idx_lottery_winners_pending_expiry
+      ON lottery_winners(expires_at)
+      WHERE status = 'pending';
+    CREATE INDEX IF NOT EXISTS idx_prize_warehouse_name_text
+      ON prize_warehouse(warehouse_name, prize_text);
+    CREATE INDEX IF NOT EXISTS idx_prize_warehouse_available_order
+      ON prize_warehouse(warehouse_name, order_index)
+      WHERE stock_count > 0;
   `);
 }
 
@@ -243,30 +261,6 @@ function getWarehousePrizes(warehouseName: string): any[] {
     ORDER BY order_index
   `);
   return stmt.all(warehouseName);
-}
-
-function getNextAvailablePrize(warehouseName: string): any | null {
-  if (!db) return null;
-  
-  const stmt = db.prepare(`
-    SELECT * FROM prize_warehouse 
-    WHERE warehouse_name = ? AND stock_count > 0 
-    ORDER BY order_index 
-    LIMIT 1
-  `);
-  return stmt.get(warehouseName) || null;
-}
-
-function consumePrize(prizeId: number): boolean {
-  if (!db) return false;
-  
-  const stmt = db.prepare(`
-    UPDATE prize_warehouse 
-    SET stock_count = stock_count - 1 
-    WHERE id = ? AND stock_count > 0
-  `);
-  const result = stmt.run(prizeId);
-  return result.changes > 0;
 }
 
 function clearWarehouse(warehouseName: string): number {
@@ -404,6 +398,16 @@ function getLotteryParticipants(lotteryId: number): any[] {
   return stmt.all(lotteryId);
 }
 
+function hasLotteryParticipant(lotteryId: number, userId: string): boolean {
+  if (!db) return false;
+  const stmt = db.prepare(`
+    SELECT 1 FROM lottery_participants
+    WHERE lottery_id = ? AND user_id = ?
+    LIMIT 1
+  `);
+  return Boolean(stmt.get(lotteryId, userId));
+}
+
 function getLotteryWinners(lotteryId: number): any[] {
   if (!db) return [];
   
@@ -519,23 +523,37 @@ async function distributePrizes(client: TelegramClient, lottery: any, winners: a
   if (!db) return;
   
   try {
+    const nextPrizeStmt = db.prepare(`
+      SELECT id, prize_text FROM prize_warehouse
+      WHERE warehouse_name = ? AND stock_count > 0
+      ORDER BY order_index
+      LIMIT 1
+    `);
+    const insertWinnerStmt = db.prepare(`
+      INSERT INTO lottery_winners (
+        lottery_id, user_id, username, first_name, last_name,
+        prize_text, status, assigned_at, expires_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const consumePrizeStmt = db.prepare(`
+      UPDATE prize_warehouse
+      SET stock_count = stock_count - 1
+      WHERE id = ? AND stock_count > 0
+    `);
+
     // Use transaction for concurrent safety during prize distribution
     const transaction = db.transaction(() => {
       for (const winner of winners) {
         // Get available prize from warehouse
-        const prize = getNextAvailablePrize(lottery.prize_warehouse || "default");
+        const prize = nextPrizeStmt.get(
+          lottery.prize_warehouse || "default",
+        ) as { id: number; prize_text: string } | undefined;
         const prizeText = prize ? prize.prize_text : "恭喜中奖！";
         
         const now = Date.now();
         const expiresAt = now + (lottery.claim_timeout * 1000);
         
-        // Insert winner record using standard schema
-        const stmt = db.prepare(`
-          INSERT INTO lottery_winners (lottery_id, user_id, username, first_name, last_name, prize_text, status, assigned_at, expires_at) 
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        
-        stmt.run(
+        insertWinnerStmt.run(
           lottery.id,
           String(winner.user_id),
           winner.username || null,
@@ -549,7 +567,7 @@ async function distributePrizes(client: TelegramClient, lottery: any, winners: a
         
         // Consume prize stock if from warehouse
         if (prize) {
-          consumePrize(prize.id);
+          consumePrizeStmt.run(prize.id);
         }
       }
     });
@@ -558,8 +576,14 @@ async function distributePrizes(client: TelegramClient, lottery: any, winners: a
     
     // Send prizes after transaction completes (if auto-send mode)
     if (lottery.distribution_mode === DistributionMode.AUTO_SEND) {
+      const recordsByUser = new Map(
+        getLotteryWinners(lottery.id).map((winner) => [
+          String(winner.user_id),
+          winner,
+        ]),
+      );
       for (const winner of winners) {
-        const winnerRecord = getLotteryWinners(lottery.id).find(w => w.user_id === winner.user_id);
+        const winnerRecord = recordsByUser.get(String(winner.user_id));
         if (winnerRecord) {
           await sendPrizeToWinner(client, winner, winnerRecord.prize_text, lottery);
           await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
@@ -832,8 +856,10 @@ async function handleEnhancedLotteryJoin(msg: any): Promise<void> {
   }
 
   // Check if user already participated
-  const participants = getLotteryParticipants(activeLottery.id);
-  const alreadyParticipated = participants.some(p => p.user_id === String(sender.id || sender));
+  const alreadyParticipated = hasLotteryParticipant(
+    activeLottery.id,
+    String(sender.id || sender),
+  );
   
   if (alreadyParticipated) {
     try {

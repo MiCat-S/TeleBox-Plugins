@@ -1,10 +1,16 @@
 import { getPrefixes } from "@utils/pluginManager";
-import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
+import {
+  Plugin,
+  type PanelSettingsAdapter,
+  type PanelSettingField,
+  type PluginRuntimeContext,
+} from "@utils/pluginBase";
 import { Api } from "teleproto";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { cronManager } from "@utils/cronManager";
 import * as cron from "cron";
 import { JSONFilePreset } from "lowdb/node";
+import type { Low } from "lowdb";
 import * as path from "path";
 import * as fs from "fs/promises";
 import { getGlobalClient } from "@utils/runtimeManager";
@@ -180,7 +186,10 @@ type SummaryDB = {
   defaultPushTarget?: string;
 };
 
-async function getDB() {
+let dbPromise: Promise<Low<SummaryDB>> | null = null;
+let dbWriteQueue: Promise<void> = Promise.resolve();
+
+async function createDB(): Promise<Low<SummaryDB>> {
   const db = await JSONFilePreset<SummaryDB>(filePath, {
     seq: "0",
     tasks: [],
@@ -229,6 +238,9 @@ async function getDB() {
   if (db.data.aiConfig.link_preview === undefined) {
     db.data.aiConfig.link_preview = false;
   }
+  db.data.aiConfig.default_timeout = normalizeStoredTimeout(
+    db.data.aiConfig.default_timeout,
+  );
   db.data.aiConfig.default_reasoning_effort = normalizeReasoningEffort(
     db.data.aiConfig.default_reasoning_effort,
   );
@@ -242,16 +254,41 @@ async function getDB() {
   await enforcePrivateConfigMode();
   const write = db.write.bind(db);
   db.write = async () => {
-    await write();
-    await enforcePrivateConfigMode();
+    const queuedWrite = dbWriteQueue.then(async () => {
+      await write();
+      await enforcePrivateConfigMode();
+    });
+    dbWriteQueue = queuedWrite.catch(() => undefined);
+    return queuedWrite;
   };
 
   return db;
 }
 
+async function getDB(): Promise<Low<SummaryDB>> {
+  if (!dbPromise) {
+    dbPromise = createDB().catch((error) => {
+      dbPromise = null;
+      throw error;
+    });
+  }
+  return dbPromise;
+}
+
 function toInt(value: any): number | undefined {
   const n = Number(value);
   return Number.isFinite(n) ? Math.trunc(n) : undefined;
+}
+
+function normalizeStoredTimeout(value: unknown): number | undefined {
+  const timeout = toInt(value);
+  if (timeout === undefined) return undefined;
+  return timeout >= 10 && timeout <= 300 ? timeout * 1000 : timeout;
+}
+
+function timeoutToPanelSeconds(value: unknown): number | undefined {
+  const timeout = normalizeStoredTimeout(value);
+  return timeout === undefined ? undefined : Math.round(timeout / 1000);
 }
 
 function makeCronKey(id: string) {
@@ -458,6 +495,7 @@ async function callChatCompletions(
   reasoningEffort: ReasoningEffort,
   serviceTier: ServiceTier,
   timeout: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   const payload: Record<string, unknown> = {
     model,
@@ -479,6 +517,7 @@ async function callChatCompletions(
         "User-Agent": CODEX_USER_AGENT,
       },
       timeout,
+      signal,
     },
   );
   const content = response.data?.choices?.[0]?.message?.content;
@@ -495,6 +534,7 @@ async function callResponses(
   reasoningEffort: ReasoningEffort,
   serviceTier: ServiceTier,
   timeout: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   const payload: Record<string, unknown> = {
     model,
@@ -517,6 +557,7 @@ async function callResponses(
         "User-Agent": CODEX_USER_AGENT,
       },
       timeout,
+      signal,
     },
   );
   const outputText = response.data?.output_text;
@@ -541,11 +582,12 @@ async function callGemini(
   model: string,
   input: string,
   timeout: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   const response = await axios.post(
     `${normalizedBaseUrl(baseUrl)}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
     { contents: [{ role: "user", parts: [{ text: input }] }] },
-    { headers: { "Content-Type": "application/json" }, timeout },
+    { headers: { "Content-Type": "application/json" }, timeout, signal },
   );
   const content = response.data?.candidates?.[0]?.content?.parts
     ?.map((part: any) => part?.text ?? "")
@@ -561,6 +603,7 @@ async function callAnthropic(
   model: string,
   input: string,
   timeout: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   const response = await axios.post(
     `${normalizedBaseUrl(baseUrl)}/v1/messages`,
@@ -572,6 +615,7 @@ async function callAnthropic(
         "Content-Type": "application/json",
       },
       timeout,
+      signal,
     },
   );
   const content = response.data?.content
@@ -590,6 +634,7 @@ async function callWithProtocol(
   reasoningEffort: ReasoningEffort,
   serviceTier: ServiceTier,
   timeout: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   switch (protocol) {
     case "responses":
@@ -601,6 +646,7 @@ async function callWithProtocol(
         reasoningEffort,
         serviceTier,
         timeout,
+        signal,
       );
     case "gemini":
       return callGemini(
@@ -609,6 +655,7 @@ async function callWithProtocol(
         provider.model,
         input,
         timeout,
+        signal,
       );
     case "anthropic":
       return callAnthropic(
@@ -617,6 +664,7 @@ async function callWithProtocol(
         provider.model,
         input,
         timeout,
+        signal,
       );
     default:
       return callChatCompletions(
@@ -627,6 +675,7 @@ async function callWithProtocol(
         reasoningEffort,
         serviceTier,
         timeout,
+        signal,
       );
   }
 }
@@ -651,6 +700,7 @@ async function callAI(
   reasoningEffort: ReasoningEffort,
   serviceTier: ServiceTier,
   timeout: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   const input = `${prompt}\n\n${messages}`;
   const protocol = detectProtocol(provider);
@@ -663,6 +713,7 @@ async function callAI(
       reasoningEffort,
       serviceTier,
       timeout,
+      signal,
     );
   } catch (error) {
     // 仅在网关明确不支持当前端点时，尝试 OpenAI 兼容接口。
@@ -678,6 +729,7 @@ async function callAI(
         reasoningEffort,
         serviceTier,
         timeout,
+        signal,
       );
     }
     throw error;
@@ -995,6 +1047,7 @@ function wrapWithSpoiler(content: string, useSpoiler: boolean): string {
 async function summarizeMessages(
   task: SummaryTask,
   messageData: MessageData[],
+  signal?: AbortSignal,
 ): Promise<{ success: boolean; result?: string; error?: string }> {
   const db = await getDB();
   const aiConfig = db.data.aiConfig;
@@ -1030,9 +1083,11 @@ async function summarizeMessages(
       aiConfig.default_reasoning_effort || "auto",
       aiConfig.default_service_tier || "auto",
       timeout,
+      signal,
     );
     return { success: true, result: aiResponse };
   } catch (aiErr: any) {
+    if (signal?.aborted) throw aiErr;
     return {
       success: false,
       error: `AI 调用失败: ${apiErrorDetail(aiErr, provider.api_key)}`,
@@ -1043,8 +1098,10 @@ async function summarizeMessages(
 // 执行总结任务
 async function executeSummary(
   task: SummaryTask,
+  signal?: AbortSignal,
 ): Promise<{ success: boolean; message: string }> {
   try {
+    signal?.throwIfAborted();
     const client = await getGlobalClient();
     if (!client) throw new Error("Telegram 客户端未初始化");
 
@@ -1063,8 +1120,9 @@ async function executeSummary(
       return { success: false, message: "未找到可总结的消息" };
     }
 
+    signal?.throwIfAborted();
     // AI 总结
-    const summaryResult = await summarizeMessages(task, messageData);
+    const summaryResult = await summarizeMessages(task, messageData, signal);
     if (!summaryResult.success) {
       return { success: false, message: summaryResult.error! };
     }
@@ -1102,6 +1160,7 @@ async function executeSummary(
     );
     const summaryText = `${header}${wrappedContent}`;
 
+    signal?.throwIfAborted();
     await client.sendMessage(pushTarget, {
       message: summaryText,
       parseMode: "html",
@@ -1110,7 +1169,37 @@ async function executeSummary(
 
     return { success: true, message: `总结完成，已推送到 ${pushTarget}` };
   } catch (e: any) {
+    if (signal?.aborted) throw e;
     return { success: false, message: `总结失败: ${e?.message || e}` };
+  }
+}
+
+const runningSummaryTaskIds = new Set<string>();
+
+async function runSummaryTaskOnce<T>(
+  taskId: string,
+  operation: () => Promise<T>,
+): Promise<T | null> {
+  if (runningSummaryTaskIds.has(taskId)) return null;
+  runningSummaryTaskIds.add(taskId);
+  try {
+    return await operation();
+  } finally {
+    runningSummaryTaskIds.delete(taskId);
+  }
+}
+
+let pluginRuntimeContext: PluginRuntimeContext | undefined;
+const cronDisposers = new Map<string, () => void | Promise<void>>();
+
+async function unregisterScheduledTask(taskId: string): Promise<void> {
+  const key = makeCronKey(taskId);
+  const dispose = cronDisposers.get(key);
+  cronDisposers.delete(key);
+  if (dispose) {
+    await dispose();
+  } else {
+    cronManager.del(key);
   }
 }
 
@@ -1121,15 +1210,22 @@ async function scheduleTask(task: SummaryTask) {
 
   console.log(`[sum] 注册任务 ${task.id}: ${task.cron}`);
 
-  cronManager.set(key, task.cron, async () => {
+  const dispose = cronManager.set(key, task.cron, async () => {
     console.log(`[sum] 开始执行任务 ${task.id}`);
 
+    const signal = pluginRuntimeContext?.signal;
     const db = await getDB();
     const idx = db.data.tasks.findIndex((t: SummaryTask) => t.id === task.id);
     const now = Date.now();
 
     try {
-      const result = await executeSummary(task);
+      const result = await runSummaryTaskOnce(task.id, () =>
+        executeSummary(task, signal),
+      );
+      if (!result) {
+        console.log(`[sum] 任务 ${task.id} 仍在执行，跳过本次触发`);
+        return;
+      }
 
       if (idx >= 0) {
         db.data.tasks[idx].lastRunAt = String(now);
@@ -1145,6 +1241,10 @@ async function scheduleTask(task: SummaryTask) {
         `[sum] 任务 ${task.id} 执行完成: ${result.success ? "成功" : "失败"}`,
       );
     } catch (e: any) {
+      if (signal?.aborted) {
+        console.log(`[sum] 任务 ${task.id} 因插件卸载而取消`);
+        return;
+      }
       console.error(`[sum] 任务 ${task.id} 执行失败:`, e);
       if (idx >= 0) {
         db.data.tasks[idx].lastRunAt = String(now);
@@ -1152,7 +1252,8 @@ async function scheduleTask(task: SummaryTask) {
         await db.write();
       }
     }
-  });
+  }, pluginRuntimeContext?.lifecycle);
+  if (cronManager.has(key)) cronDisposers.set(key, dispose);
 }
 
 // 启动任务
@@ -1177,12 +1278,6 @@ async function bootstrapTasks() {
     console.error("[sum] bootstrap 失败:", e);
   }
 }
-
-// 立即执行
-(async () => {
-  await bootstrapTasks();
-  console.log("[sum] 插件初始化完成");
-})();
 
 const help_text = `▎群消息总结
 
@@ -1249,6 +1344,22 @@ const help_text = `▎群消息总结
 
 class SummaryPlugin extends Plugin {
   description: string = `群消息总结插件\n\n${help_text}`;
+
+  async setup(context: PluginRuntimeContext): Promise<void> {
+    pluginRuntimeContext = context;
+    await bootstrapTasks();
+    console.log("[sum] 插件初始化完成");
+  }
+
+  async cleanup(): Promise<void> {
+    const disposers = Array.from(cronDisposers.values());
+    cronDisposers.clear();
+    await Promise.allSettled(
+      disposers.map(async (dispose) => await dispose()),
+    );
+    runningSummaryTaskIds.clear();
+    pluginRuntimeContext = undefined;
+  }
 
   cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
     sum: async (msg: Api.Message) => {
@@ -1646,7 +1757,7 @@ class SummaryPlugin extends Plugin {
             return;
           }
 
-          cronManager.del(makeCronKey(id));
+          await unregisterScheduledTask(id);
           db.data.tasks.splice(idx, 1);
           await db.write();
 
@@ -1696,7 +1807,13 @@ class SummaryPlugin extends Plugin {
             parseMode: "html",
           });
 
-          const result = await executeSummary(task);
+          const result = await runSummaryTaskOnce(task.id, () =>
+            executeSummary(task),
+          );
+          if (!result) {
+            await msg.edit({ text: "⏳ 该任务正在执行，请稍后再试" });
+            return;
+          }
           if (result.success) {
             await msg.edit({
               text: `✅ ${htmlEscape(result.message)}`,
@@ -1834,7 +1951,7 @@ class SummaryPlugin extends Plugin {
 
           const t = db.data.tasks[idx];
           if (sub === "disable") {
-            cronManager.del(makeCronKey(id));
+            await unregisterScheduledTask(id);
             t.disabled = true;
             await db.write();
             await msg.edit({
@@ -1862,7 +1979,7 @@ class SummaryPlugin extends Plugin {
 
           // 停止所有任务
           for (const t of db.data.tasks) {
-            cronManager.del(makeCronKey(t.id));
+            await unregisterScheduledTask(t.id);
           }
 
           // 重新编号
@@ -2394,12 +2511,20 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`,
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await getDB();
       const { providers: _providers, ...safeConfig } = db.data.aiConfig;
-      return safeConfig as Record<string, unknown>;
+      return {
+        ...safeConfig,
+        default_timeout: timeoutToPanelSeconds(safeConfig.default_timeout),
+      } as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await getDB();
       const safePatch = { ...patch };
       delete safePatch.providers;
+      if (Object.prototype.hasOwnProperty.call(safePatch, "default_timeout")) {
+        const timeoutSeconds = toInt(safePatch.default_timeout);
+        if (timeoutSeconds === undefined) delete safePatch.default_timeout;
+        else safePatch.default_timeout = timeoutSeconds * 1000;
+      }
       Object.assign(db.data.aiConfig, safePatch);
       db.data.aiConfig.default_reasoning_effort = normalizeReasoningEffort(
         db.data.aiConfig.default_reasoning_effort,

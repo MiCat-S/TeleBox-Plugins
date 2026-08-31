@@ -25,6 +25,45 @@ const animatedCustomEmojiCache = new Map<string, Buffer | undefined>();
 const animatedFrameCache = new Map<string, AnimatedFrameSet>();
 const entityCache = new Map<string, any>();
 const avatarCache = new Map<string, Buffer | undefined>();
+const MAX_BINARY_CACHE_ENTRIES = 128;
+const MAX_ENTITY_CACHE_ENTRIES = 512;
+const MAX_ANIMATED_FRAME_CACHE_ENTRIES = 8;
+const MAX_ANIMATED_FRAME_CACHE_BYTES = 32 * 1024 * 1024;
+
+export function setBoundedCache<K, V>(cache: Map<K, V>, key: K, value: V, maxEntries: number): void {
+  cache.delete(key);
+  cache.set(key, value);
+  while (cache.size > maxEntries) {
+    const oldest = cache.keys().next();
+    if (oldest.done) break;
+    cache.delete(oldest.value);
+  }
+}
+
+function animatedFrameSetBytes(value: AnimatedFrameSet): number {
+  return value.frames.reduce((total, frame) => total + frame.length, 0);
+}
+
+export function trimAnimatedFrameCache(
+  cache: Map<string, AnimatedFrameSet>,
+  maxEntries = MAX_ANIMATED_FRAME_CACHE_ENTRIES,
+  maxBytes = MAX_ANIMATED_FRAME_CACHE_BYTES,
+): void {
+  let totalBytes = 0;
+  for (const value of cache.values()) totalBytes += animatedFrameSetBytes(value);
+  while (cache.size > maxEntries || totalBytes > maxBytes) {
+    const oldest = cache.entries().next().value as [string, AnimatedFrameSet] | undefined;
+    if (!oldest) break;
+    cache.delete(oldest[0]);
+    totalBytes -= animatedFrameSetBytes(oldest[1]);
+  }
+}
+
+function setAnimatedFrameCache(key: string, value: AnimatedFrameSet): void {
+  animatedFrameCache.delete(key);
+  animatedFrameCache.set(key, value);
+  trimAnimatedFrameCache(animatedFrameCache);
+}
 const EMOJI_FETCH_CONCURRENCY = 8;
 const QUOTE_MESSAGE_CONCURRENCY = 8;
 const ANIMATED_FRAME_CONCURRENCY = 4;
@@ -588,10 +627,10 @@ async function getPeerEntity(client: any, peer: any): Promise<any | undefined> {
   if (entityCache.has(key)) return entityCache.get(key);
   try {
     const entity = await withTimeout(client.getEntity(peer), QUOTE_RPC_TIMEOUT_MS, "getPeerEntity.getEntity");
-    entityCache.set(key, entity);
+    setBoundedCache(entityCache, key, entity, MAX_ENTITY_CACHE_ENTRIES);
     return entity;
   } catch (_) {
-    entityCache.set(key, undefined);
+    setBoundedCache(entityCache, key, undefined, MAX_ENTITY_CACHE_ENTRIES);
     return undefined;
   }
 }
@@ -614,14 +653,14 @@ async function senderEntity(msg: Api.Message): Promise<any | undefined> {
   try {
     const sender = await withTimeout((msg as any).getSender?.(), QUOTE_RPC_TIMEOUT_MS, "senderEntity.getSender");
     if (sender) {
-      if (key) entityCache.set(key, sender);
+      if (key) setBoundedCache(entityCache, key, sender, MAX_ENTITY_CACHE_ENTRIES);
       return sender;
     }
   } catch (err: any) {
     console.debug("[quote] getSender failed:", err?.message || err);
   }
   const entity = await getPeerEntity((msg as any).client, peer);
-  if (key) entityCache.set(key, entity);
+  if (key) setBoundedCache(entityCache, key, entity, MAX_ENTITY_CACHE_ENTRIES);
   return entity;
 }
 
@@ -786,7 +825,7 @@ async function downloadEntityAvatar(client: any, entity: any): Promise<Buffer | 
 
   const photo = fullEntity?.photo;
   if (!photo || photo instanceof Api.UserProfilePhotoEmpty || photo instanceof Api.ChatPhotoEmpty) {
-    if (key) avatarCache.set(key, undefined);
+    if (key) setBoundedCache(avatarCache, key, undefined, MAX_BINARY_CACHE_ENTRIES);
     return undefined;
   }
 
@@ -825,7 +864,7 @@ async function downloadEntityAvatar(client: any, entity: any): Promise<Buffer | 
 
   const [small, big] = await Promise.all([tryDownload(false), tryDownload(true)]);
   const normalized = small ? await normalizeAvatarBuffer(small) : big ? await normalizeAvatarBuffer(big) : undefined;
-  if (key) avatarCache.set(key, normalized);
+  if (key) setBoundedCache(avatarCache, key, normalized, MAX_BINARY_CACHE_ENTRIES);
   return normalized;
 }
 
@@ -1424,7 +1463,7 @@ async function generateAnimatedQuoteWebm(quoteMessages: any[], args: QuoteArgs):
     const frames = await extractAnimatedFrames(source.raw, source.size, frameCount, fps);
     quoteTiming("animated.extract_source", tx, { kind: source.kind, key: String(source.key), frames: frames.length, size: source.size, rawKind: bufferKind(source.raw), rawBytes: source.raw.length });
     const frameSet: AnimatedFrameSet = { frames, fps, duration: source.info.duration, cacheKey };
-    if (source.kind === "emoji" && frames.length) animatedFrameCache.set(cacheKey, frameSet);
+    if (source.kind === "emoji" && frames.length) setAnimatedFrameCache(cacheKey, frameSet);
     return { source, frameSet };
   });
   quoteTiming("animated.extract_all", textract, { sources: sources.length, frameCount });
@@ -1546,9 +1585,9 @@ async function hydrateCustomEmojiBuffers(client: any, messages: any[]): Promise<
     if (!id) return;
     let rawBuffer = await downloadCustomEmojiAnimatedPreferred(client, doc);
     const wasAnimated = looksLikeAnimatedEmoji(rawBuffer);
-    if (isAnimatedRasterBuffer(rawBuffer)) animatedCustomEmojiCache.set(id, rawBuffer);
+    if (isAnimatedRasterBuffer(rawBuffer)) setBoundedCache(animatedCustomEmojiCache, id, rawBuffer, MAX_BINARY_CACHE_ENTRIES);
     const buffer = await normalizeCustomEmojiBuffer(rawBuffer);
-    customEmojiCache.set(id, buffer);
+    setBoundedCache(customEmojiCache, id, buffer, MAX_BINARY_CACHE_ENTRIES);
     console.warn("quote custom emoji loaded", id, buffer ? buffer.length : 0, wasAnimated ? "animated-converted" : "static", "source", isGifBuffer(rawBuffer) ? "gif" : isWebmBuffer(rawBuffer) ? "webm" : "other", "mime", doc.mimeType || doc.mime_type || "", "thumbs", doc.thumbs?.length || 0, "videoThumbs", doc.videoThumbs?.length || doc.video_thumbs?.length || 0);
   });
   const loadedDocIds = new Set(docs.map((entry: any) => String(entry.id || "")).filter(Boolean));

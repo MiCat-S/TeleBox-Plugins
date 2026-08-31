@@ -2468,65 +2468,92 @@ class TimeoutMiddleware implements Middleware {
       timeoutMs,
     );
 
-    try {
-      const combined = this.combine(timeoutController, token);
-      combined.signal.addEventListener("abort", () => clearTimeout(timeoutId), {
-        once: true,
-      });
-      return await next(input, combined);
-    } finally {
+    const { token: combined, cleanup: cleanupCombined } = this.combine(
+      timeoutController,
+      token,
+    );
+    let cleanedUp = false;
+    let stream: any;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
       clearTimeout(timeoutId);
+      cleanupCombined();
+      combined.signal.removeEventListener("abort", cleanup);
+      if (stream?.removeListener) {
+        stream.removeListener("end", cleanup);
+        stream.removeListener("close", cleanup);
+        stream.removeListener("error", cleanup);
+      }
+    };
+    combined.signal.addEventListener("abort", cleanup, { once: true });
+
+    try {
+      const result = await next(input, combined);
+      stream = result?.data;
+      if (stream?.once && typeof stream[Symbol.asyncIterator] === "function") {
+        stream.once("end", cleanup);
+        stream.once("close", cleanup);
+        stream.once("error", cleanup);
+        if (stream.readableEnded || stream.destroyed) cleanup();
+      } else {
+        cleanup();
+      }
+      return result;
+    } catch (error) {
+      cleanup();
+      throw error;
     }
   }
 
   private combine(
     timeoutController: AbortController,
     externalToken?: AbortToken,
-  ): AbortToken {
+  ): { token: AbortToken; cleanup: () => void } {
     const controller = new AbortController();
+    const onTimeout = () => controller.abort(timeoutController.signal.reason);
+    const onExternalAbort = () => controller.abort(externalToken?.reason);
 
     if (timeoutController.signal.aborted)
       controller.abort(timeoutController.signal.reason);
     else
-      timeoutController.signal.addEventListener(
-        "abort",
-        () => controller.abort(timeoutController.signal.reason),
-        {
-          once: true,
-        },
-      );
+      timeoutController.signal.addEventListener("abort", onTimeout, {
+        once: true,
+      });
 
     if (externalToken) {
       if (externalToken.aborted) controller.abort(externalToken.reason);
       else
-        externalToken.signal.addEventListener(
-          "abort",
-          () => controller.abort(externalToken.reason),
-          {
-            once: true,
-          },
-        );
+        externalToken.signal.addEventListener("abort", onExternalAbort, {
+          once: true,
+        });
     }
 
     return {
-      get aborted() {
-        return controller.signal.aborted;
+      token: {
+        get aborted() {
+          return controller.signal.aborted;
+        },
+        get reason() {
+          return controller.signal.reason?.toString();
+        },
+        get signal() {
+          return controller.signal;
+        },
+        abort(reason?: string) {
+          if (!controller.signal.aborted) controller.abort(reason);
+        },
+        throwIfAborted() {
+          if (controller.signal.aborted) {
+            throw new UserError(
+              controller.signal.reason?.toString() || "操作已取消",
+            );
+          }
+        },
       },
-      get reason() {
-        return controller.signal.reason?.toString();
-      },
-      get signal() {
-        return controller.signal;
-      },
-      abort(reason?: string) {
-        controller.abort(reason);
-      },
-      throwIfAborted() {
-        if (controller.signal.aborted) {
-          throw new UserError(
-            controller.signal.reason?.toString() || "操作已取消",
-          );
-        }
+      cleanup() {
+        timeoutController.signal.removeEventListener("abort", onTimeout);
+        externalToken?.signal.removeEventListener("abort", onExternalAbort);
       },
     };
   }
@@ -4585,7 +4612,7 @@ class QuestionFeature extends BaseFeatureHandler {
     try {
       await this.handleQuestion(msg, question, trigger, token);
     } finally {
-      this.activeToken = undefined;
+      if (this.activeToken === token) this.activeToken = undefined;
       this.aiService.releaseToken(token);
     }
   }

@@ -440,28 +440,29 @@ class KeywordTasks {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const deleteStmt = db.prepare("DELETE FROM keyword_tasks");
-    deleteStmt.run();
-
-    for (const task of this.tasks) {
-      stmt.run(
-        task.task_id,
-        task.cid,
-        task.key,
-        task.msg,
-        task.include ? 1 : 0,
-        task.regexp ? 1 : 0,
-        task.exact ? 1 : 0,
-        task.case ? 1 : 0,
-        task.ignore_forward ? 1 : 0,
-        task.reply ? 1 : 0,
-        task.delete ? 1 : 0,
-        task.ban,
-        task.restrict,
-        task.delay_delete,
-        task.source_delay_delete
-      );
-    }
+    const replaceAll = db.transaction((tasks: KeywordTask[]) => {
+      db.prepare("DELETE FROM keyword_tasks").run();
+      for (const task of tasks) {
+        stmt.run(
+          task.task_id,
+          task.cid,
+          task.key,
+          task.msg,
+          task.include ? 1 : 0,
+          task.regexp ? 1 : 0,
+          task.exact ? 1 : 0,
+          task.case ? 1 : 0,
+          task.ignore_forward ? 1 : 0,
+          task.reply ? 1 : 0,
+          task.delete ? 1 : 0,
+          task.ban,
+          task.restrict,
+          task.delay_delete,
+          task.source_delay_delete
+        );
+      }
+    });
+    replaceAll(this.tasks);
   }
 
   loadFromDB(): void {

@@ -1,4 +1,3 @@
-import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
@@ -393,20 +392,70 @@ class CyPlugin extends Plugin {
   private timer?: NodeJS.Timeout;
   private lastRuns = new Set<string>();
   private runningRuns = new Set<string>();
+  private scheduleConfig = readScheduleConfig();
+  private disposed = false;
 
   constructor() {
     super();
-    this.timer = setInterval(() => {
-      this.tickSchedule().catch((error) => console.error("[cy] 定时词云失败:", error));
-    }, 30_000);
+    this.runScheduledTick();
   }
 
   cleanup(): void {
-    if (this.timer) clearInterval(this.timer);
+    this.disposed = true;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = undefined;
+  }
+
+  private scheduleNextTick(): void {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = undefined;
+
+    const config = this.scheduleConfig;
+    if (!config.enabled || !config.target || !config.times.length) return;
+
+    const now = new Date();
+    let nextRun: Date | undefined;
+    for (const time of config.times) {
+      const [hour, minute] = time.split(":").map(Number);
+      const candidate = new Date(now);
+      candidate.setHours(hour, minute, 0, 0);
+      if (candidate <= now) candidate.setDate(candidate.getDate() + 1);
+      if (!nextRun || candidate < nextRun) nextRun = candidate;
+    }
+    if (!nextRun) return;
+
+    this.timer = setTimeout(() => {
+      this.timer = undefined;
+      this.runScheduledTick();
+    }, Math.max(1, nextRun.getTime() - now.getTime()));
+    this.timer.unref?.();
+  }
+
+  private runScheduledTick(): void {
+    if (this.disposed) return;
+    void this.tickSchedule()
+      .catch((error) => console.error("[cy] 定时词云失败:", error))
+      .finally(() => {
+        if (!this.disposed) this.scheduleNextTick();
+      });
+  }
+
+  private saveScheduleConfig(config: CyScheduleConfig): void {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = undefined;
+    const times = Array.isArray(config.times) ? config.times : [];
+    this.scheduleConfig = {
+      enabled: Boolean(config.enabled),
+      target: String(config.target || "").trim(),
+      times: Array.from(new Set(times.map(String).filter(isValidTime))).slice(0, 12),
+      limit: normalizeLimit(config.limit),
+    };
+    writeScheduleConfig(this.scheduleConfig);
+    this.runScheduledTick();
   }
 
   private async tickSchedule(): Promise<void> {
-    const config = readScheduleConfig();
+    const config = this.scheduleConfig;
     if (!config.enabled || !config.target || !config.times.length) return;
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0");
@@ -433,7 +482,7 @@ class CyPlugin extends Plugin {
       const args = getArgs(String(msg.text || msg.message || ""));
       const [subCommand = "", ...restParts] = args.split(/\s+/).filter(Boolean);
       const rest = restParts.join(" ");
-      const config = readScheduleConfig();
+      const config = { ...this.scheduleConfig, times: [...this.scheduleConfig.times] };
 
       if (["help", "?"].includes(subCommand)) {
         await msg.edit({ text: buildHelpText() });
@@ -446,7 +495,7 @@ class CyPlugin extends Plugin {
           return;
         }
         config.target = target;
-        writeScheduleConfig(config);
+        this.saveScheduleConfig(config);
         await msg.edit({ text: `词云目标已设置: ${target}` });
         return;
       }
@@ -458,7 +507,7 @@ class CyPlugin extends Plugin {
         }
         config.times = parsed.times;
         config.limit = parsed.limit;
-        writeScheduleConfig(config);
+        this.saveScheduleConfig(config);
         await msg.edit({ text: formatStatus(config) });
         return;
       }
@@ -468,13 +517,13 @@ class CyPlugin extends Plugin {
           return;
         }
         config.enabled = true;
-        writeScheduleConfig(config);
+        this.saveScheduleConfig(config);
         await msg.edit({ text: formatStatus(config) });
         return;
       }
       if (["off", "disable", "stop"].includes(subCommand)) {
         config.enabled = false;
-        writeScheduleConfig(config);
+        this.saveScheduleConfig(config);
         await msg.edit({ text: formatStatus(config) });
         return;
       }
@@ -487,7 +536,7 @@ class CyPlugin extends Plugin {
         const limit = normalizeLimit(restParts[0], config.limit);
         await msg.edit({ text: `正在发送词云到 ${target}...` });
         await sendCloudToTarget(msg.client, target, limit);
-        await msg.safeDelete?.({ revoke: true } as any);
+        await (msg as any).safeDelete?.({ revoke: true });
         return;
       }
 
@@ -499,7 +548,7 @@ class CyPlugin extends Plugin {
         await msg.edit({ text: "没有统计到足够的热词。" });
         return;
       }
-      await msg.safeDelete?.({ revoke: true } as any);
+      await (msg as any).safeDelete?.({ revoke: true });
     },
   };
 
@@ -540,13 +589,11 @@ class CyPlugin extends Plugin {
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<CyScheduleConfig>(path.join(__dirname, "cy_schedule.json"), DEFAULT_SCHEDULE);
-      return db.data as unknown as Record<string, unknown>;
+      return { ...this.scheduleConfig, times: [...this.scheduleConfig.times] };
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<CyScheduleConfig>(path.join(__dirname, "cy_schedule.json"), DEFAULT_SCHEDULE);
-      Object.assign(db.data, patch);
-      await db.write();
+      const next = { ...this.scheduleConfig, ...patch } as CyScheduleConfig;
+      this.saveScheduleConfig(next);
     },
   };
 }

@@ -130,6 +130,16 @@ class ConfigManager {
     }
   }
 
+  static close(): void {
+    if (this.db) {
+      try {
+        this.db.close();
+      } catch {}
+    }
+    this.db = null;
+    this.initialized = false;
+  }
+
   static getPromptMap(): Record<string, string> {
     const raw = this.get(
       CONFIG_KEYS.PROMPT_MAP,
@@ -497,6 +507,10 @@ async function handleAitcCommand(msg: Api.Message): Promise<void> {
 }
 
 class AitcPlugin extends Plugin {
+  cleanup(): void {
+    ConfigManager.close();
+  }
+
   description: string = `
 自定义 Prompt 的 AI 转写插件：
 - aitc url ＜地址＞ - 自定义API地址（兼容OpenAI SDK，默认OpenAI）
