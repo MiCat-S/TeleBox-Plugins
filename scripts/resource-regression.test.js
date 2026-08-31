@@ -10,11 +10,22 @@ const corePackage = path.resolve(repoRoot, "../TeleBox-Core/package.json");
 const projectRequire = createRequire(corePackage);
 const esbuild = projectRequire("esbuild");
 const pluginFiles = [
+  "ai/ai.ts",
+  "bgp/bgp.ts",
   "checkapi/checkapi.ts",
-  "speedlink/speedlink.ts",
   "cy/cy.ts",
-  "yvlu/yvlu.ts",
+  "deepwiki/deepwiki.ts",
+  "eat/eat.ts",
+  "eatgif/eatgif.ts",
+  "getstickers/getstickers.ts",
+  "javdb/javdb.ts",
+  "pic_to_sticker/pic_to_sticker.ts",
   "quote/quote.ts",
+  "speedlink/speedlink.ts",
+  "speedtest/speedtest.ts",
+  "ssh/ssh.ts",
+  "subinfo/subinfo.ts",
+  "yvlu/yvlu.ts",
 ];
 const sources = Object.fromEntries(
   pluginFiles.map((file) => [file, fs.readFileSync(path.join(repoRoot, file), "utf8")]),
@@ -33,9 +44,38 @@ assert.match(speedlinkSource, /cleanup\(\): void[\s\S]*?db\.close\(\)/);
 
 const cySource = sources["cy/cy.ts"];
 assert.doesNotMatch(cySource, /setInterval\(/);
+assert.doesNotMatch(cySource, /^import .* from ["']canvas["']/m);
+assert.match(cySource, /function getCanvasModule\(\)/);
 assert.match(cySource, /private scheduleConfig = readScheduleConfig\(\)/);
 assert.match(cySource, /private runScheduledTick\(\): void[\s\S]*?\.catch\([\s\S]*?\.finally\(/);
 assert.match(cySource, /private disposed = false[\s\S]*?cleanup\(\): void[\s\S]*?this\.disposed = true/);
+
+for (const file of [
+  "ai/ai.ts",
+  "bgp/bgp.ts",
+  "eat/eat.ts",
+  "eatgif/eatgif.ts",
+  "pic_to_sticker/pic_to_sticker.ts",
+  "speedlink/speedlink.ts",
+  "speedtest/speedtest.ts",
+]) {
+  assert.doesNotMatch(sources[file], /^import (?!type\b).* from ["']sharp["']/m, file);
+  assert.match(sources[file], /function getSharp\(\)/, file);
+}
+
+for (const file of ["bgp/bgp.ts", "javdb/javdb.ts", "subinfo/subinfo.ts"]) {
+  assert.doesNotMatch(sources[file], /^import .* from ["']cheerio["']/m, file);
+  assert.match(sources[file], /function getCheerio\(\)/, file);
+}
+
+for (const file of ["getstickers/getstickers.ts", "ssh/ssh.ts"]) {
+  assert.doesNotMatch(sources[file], /^import .* from ["']archiver["']/m, file);
+  assert.match(sources[file], /function createZipArchive\(/, file);
+}
+
+const deepwikiSource = sources["deepwiki/deepwiki.ts"];
+assert.doesNotMatch(deepwikiSource, /^import .*@modelcontextprotocol\/sdk/m);
+assert.match(deepwikiSource, /await Promise\.all\(\[[\s\S]*?@modelcontextprotocol\/sdk/);
 
 function loadTsModule(relativePath) {
   const sourcePath = path.join(repoRoot, relativePath);

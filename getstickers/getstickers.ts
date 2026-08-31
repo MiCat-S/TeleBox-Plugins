@@ -6,7 +6,6 @@ import * as path from "path";
 import { createWriteStream } from "fs";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import { ZipArchive } from "archiver";
 import bigInt from "big-integer";
 import { CustomFile } from "teleproto/client/uploads";
 import { execFile } from "child_process";
@@ -17,6 +16,11 @@ const mainPrefix = prefixes[0];
 
 
 const execFileAsync = promisify(execFile);
+
+function createZipArchive(options: ConstructorParameters<typeof import("archiver")["ZipArchive"]>[0]) {
+  const { ZipArchive } = require("archiver") as typeof import("archiver");
+  return new ZipArchive(options);
+}
 
 
 class GetStickersPlugin extends Plugin {
@@ -597,7 +601,7 @@ export_gif(animation, gif_path, 512, 512, 30)
       
       // 创建输出流
       const output = fs.createWriteStream(zipPath);
-      const archive = new ZipArchive( {
+      const archive = createZipArchive({
       zlib: { level: 9 } // 最高压缩级别
     });
       

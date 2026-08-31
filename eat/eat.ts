@@ -1,7 +1,7 @@
 import * as path from "path";
 import { JSONFilePreset } from "lowdb/node";
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
-import sharp, { type OverlayOptions } from "sharp";
+import type { OverlayOptions } from "sharp";
 import axios from "axios";
 import { Api } from "teleproto";
 import { CustomFile } from "teleproto/client/uploads";
@@ -10,6 +10,13 @@ import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
+type SharpFactory = typeof import("sharp");
+let sharpFactory: SharpFactory | undefined;
+
+function getSharp(): SharpFactory {
+  if (!sharpFactory) sharpFactory = require("sharp") as SharpFactory;
+  return sharpFactory;
+}
 const MAX_ASSET_CACHE_SIZE = 100;
 const assetBufferCache = new Map<string, Buffer>();
 
@@ -142,22 +149,22 @@ async function iconMaskedFor(params: {
   const { role, avatar } = params;
 
   const maskBuffer = await getAssetBuffer(role.mask);
-  const { width: maskWidth, height: maskHeight } = await sharp(
+  const { width: maskWidth, height: maskHeight } = await getSharp()(
     maskBuffer
   ).metadata();
 
-  let iconRotate = await sharp(avatar).resize(maskWidth, maskHeight).toBuffer();
+  let iconRotate = await getSharp()(avatar).resize(maskWidth, maskHeight).toBuffer();
 
   if (role.rotate) {
-    iconRotate = await sharp(iconRotate).rotate(role.rotate).toBuffer();
+    iconRotate = await getSharp()(iconRotate).rotate(role.rotate).toBuffer();
   }
   if (role.brightness) {
-    iconRotate = await sharp(iconRotate)
+    iconRotate = await getSharp()(iconRotate)
       .modulate({ brightness: role.brightness })
       .toBuffer();
   }
 
-  let iconSharp = sharp(iconRotate);
+  let iconSharp = getSharp()(iconRotate);
 
   const { width: iconWidth, height: iconHeight } = await iconSharp.metadata();
 
@@ -248,12 +255,12 @@ async function compositeWithEntryConfig(parmas: {
 
     const stampBuf = await getAssetBuffer(entry.url);
 
-    const base = await sharp(youAvatarBuffer)
+    const base = await getSharp()(youAvatarBuffer)
       .resize(size, size, { fit: "cover" })
       .png()
       .toBuffer();
 
-    const stampRotated = await sharp(stampBuf)
+    const stampRotated = await getSharp()(stampBuf)
       .resize({ width: Math.round(size * scale) })
       .rotate(rotate, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .ensureAlpha()
@@ -261,18 +268,18 @@ async function compositeWithEntryConfig(parmas: {
       .png()
       .toBuffer();
 
-    const stampFinal = await sharp(stampRotated)
+    const stampFinal = await getSharp()(stampRotated)
       .resize({ width: size, height: size, fit: "inside" })
       .png()
       .toBuffer();
 
-    const outBuffer = await sharp(base)
+    const outBuffer = await getSharp()(base)
       .composite([{ input: stampFinal, gravity: "center" }])
       .webp({ lossless: true })
       .toBuffer();
 
     const file = new CustomFile("output.webp", outBuffer.length, "", outBuffer);
-    const { width = size, height = size } = await sharp(outBuffer).metadata();
+    const { width = size, height = size } = await getSharp()(outBuffer).metadata();
 
     const stickerAttr = new Api.DocumentAttributeSticker({
       alt: entry.name,
@@ -328,13 +335,13 @@ async function compositeWithEntryConfig(parmas: {
     composite.push(iconMasked);
   }
 
-  const outBuffer = await sharp(baseBuffer)
+  const outBuffer = await getSharp()(baseBuffer)
     .composite(composite)
     .webp({ quality: 100 })
     .toBuffer();
 
   const file = new CustomFile("output.webp", outBuffer.length, "", outBuffer);
-  const { width = 512, height = 512 } = await sharp(outBuffer).metadata();
+  const { width = 512, height = 512 } = await getSharp()(outBuffer).metadata();
 
   const stickerAttr = new Api.DocumentAttributeSticker({
     alt: entry.name,

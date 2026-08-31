@@ -1,5 +1,5 @@
 import { Plugin , type PanelSettingsAdapter, type PanelSettingField } from "@utils/pluginBase";
-import sharp, { type OverlayOptions } from "sharp";
+import type { OverlayOptions } from "sharp";
 import axios from "axios";
 import {
   createDirectoryInAssets,
@@ -20,6 +20,13 @@ import { htmlEscape } from "@utils/htmlEscape";
 import { JSONFilePreset } from "lowdb/node";
 
 const execFileAsync = promisify(execFile);
+type SharpFactory = typeof import("sharp");
+let sharpFactory: SharpFactory | undefined;
+
+function getSharp(): SharpFactory {
+  if (!sharpFactory) sharpFactory = require("sharp") as SharpFactory;
+  return sharpFactory;
+}
 
 // 由于gif可能很多帧，最好缓存在本地，而不是每次都远程拿不同的帧数
 const ASSET_PATH = createDirectoryInAssets("eatgif");
@@ -339,7 +346,7 @@ class EatGifPlugin extends Plugin {
       composite.push(iconMasked);
     }
 
-    const outBuffer = await sharp(mainCanvas)
+    const outBuffer = await getSharp()(mainCanvas)
       .composite(composite)
       .raw()
       .toBuffer();
@@ -353,24 +360,24 @@ class EatGifPlugin extends Plugin {
     avatar: Buffer
   ): Promise<OverlayOptions> {
     const maskBuffer = await assetBufferFor(role.mask);
-    const { width: maskWidth, height: maskHeight } = await sharp(
+    const { width: maskWidth, height: maskHeight } = await getSharp()(
       maskBuffer
     ).metadata();
 
-    let iconRotate = await sharp(avatar)
+    let iconRotate = await getSharp()(avatar)
       .resize(maskWidth, maskHeight)
       .toBuffer();
 
     if (role.rotate) {
-      iconRotate = await sharp(iconRotate).rotate(role.rotate).toBuffer();
+      iconRotate = await getSharp()(iconRotate).rotate(role.rotate).toBuffer();
     }
     if (role.brightness) {
-      iconRotate = await sharp(iconRotate)
+      iconRotate = await getSharp()(iconRotate)
         .modulate({ brightness: role.brightness })
         .toBuffer();
     }
 
-    let iconSharp = sharp(iconRotate);
+    let iconSharp = getSharp()(iconRotate);
 
     const { width: iconWidth, height: iconHeight } = await iconSharp.metadata();
 

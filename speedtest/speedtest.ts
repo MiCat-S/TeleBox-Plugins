@@ -17,10 +17,17 @@ import path from "path";
 import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import axios from "axios";
-import sharp from "sharp";
 import { getPrefixes } from "@utils/pluginManager";
 
 import { htmlEscape } from "@utils/htmlEscape";
+
+type SharpFactory = typeof import("sharp");
+let sharpFactory: SharpFactory | undefined;
+
+function getSharp(): SharpFactory {
+  if (!sharpFactory) sharpFactory = require("sharp") as SharpFactory;
+  return sharpFactory;
+}
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
@@ -115,7 +122,7 @@ async function fillRoundedCorners(
   bgColor: string = "#212338",
   borderPx: number = 14
 ) {
-  const meta = await sharp(inputPath).metadata();
+  const meta = await getSharp()(inputPath).metadata();
 
   // Choose an output path if not provided
   const output =
@@ -141,7 +148,7 @@ async function fillRoundedCorners(
   const cropH = height - inset * 2;
 
   // Background canvas with original dimensions
-  const background = sharp({
+  const background = getSharp()({
     create: {
       width,
       height,
@@ -151,7 +158,7 @@ async function fillRoundedCorners(
   });
 
   // Inner cropped image (removes the outer border)
-  const innerBuf = await sharp(inputPath)
+  const innerBuf = await getSharp()(inputPath)
     .extract({ left: inset, top: inset, width: cropW, height: cropH })
     .toBuffer();
 
@@ -1021,7 +1028,7 @@ async function convertImageToStickerWebp(
     );
 
     // Resize to 512x512 and convert to webp for sticker
-    await sharp(srcPath)
+    await getSharp()(srcPath)
       .resize(512, 512, {
         fit: "contain",
         background: { r: 0, g: 0, b: 0, alpha: 0 },
@@ -1034,7 +1041,7 @@ async function convertImageToStickerWebp(
       const { size } = fs.statSync(stickerPath);
       if (size > 512 * 1024) {
         // Try recompress at lower quality
-        await sharp(srcPath)
+        await getSharp()(srcPath)
           .resize(512, 512, {
             fit: "contain",
             background: { r: 0, g: 0, b: 0, alpha: 0 },

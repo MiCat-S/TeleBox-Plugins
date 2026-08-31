@@ -14,7 +14,6 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-import sharp from "sharp";
 import http from "http";
 import https from "https";
 import { promisify } from "util";
@@ -24,6 +23,14 @@ import { htmlEscape } from "@utils/htmlEscape";
 
 const CODEX_USER_AGENT =
   "codex-tui/0.146.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.146.0)";
+
+type SharpFactory = typeof import("sharp");
+let sharpFactory: SharpFactory | undefined;
+
+function getSharp(): SharpFactory {
+  if (!sharpFactory) sharpFactory = require("sharp") as SharpFactory;
+  return sharpFactory;
+}
 
 interface ProviderConfig {
   tag: string;
@@ -698,7 +705,7 @@ const getImageExtensionForMime = (mimeType: string): string => {
 
 const extractFirstFrame = async (buffer: Buffer): Promise<Buffer | null> => {
   try {
-    return await sharp(buffer, { animated: true }).png().toBuffer();
+    return await getSharp()(buffer, { animated: true }).png().toBuffer();
   } catch {
     return null;
   }
@@ -803,7 +810,7 @@ const collectImagePartsFromSingleMessage = async (
       const buffer = await normalizeDownloadedMedia(downloaded);
       if (buffer) {
         try {
-          frameBuffer = await sharp(buffer).png().toBuffer();
+          frameBuffer = await getSharp()(buffer).png().toBuffer();
         } catch {
           frameBuffer = buffer;
         }
@@ -5002,7 +5009,7 @@ class ImageFeature extends BaseFeatureHandler {
         if (!inputImage?.data) throw new Error("无法解析图片数据");
         if (inputImage.data && inputImage.mimeType !== "image/png") {
           try {
-            const pngBuffer = await sharp(inputImage.data).png().toBuffer();
+            const pngBuffer = await getSharp()(inputImage.data).png().toBuffer();
             inputImage = { data: pngBuffer, mimeType: "image/png" };
           } catch {}
         }

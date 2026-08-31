@@ -6,9 +6,16 @@ import * as path from "path";
 import * as fs from "fs";
 import axios from "axios";
 import * as crypto from "crypto";
-import sharp from "sharp";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import { htmlEscape } from "@utils/htmlEscape";
+
+type SharpFactory = typeof import("sharp");
+let sharpFactory: SharpFactory | undefined;
+
+function getSharp(): SharpFactory {
+  if (!sharpFactory) sharpFactory = require("sharp") as SharpFactory;
+  return sharpFactory;
+}
 
 import {
   createDirectoryInAssets,
@@ -24,7 +31,7 @@ async function fillRoundedCorners(
   bgColor: string = "#212338",
   borderPx: number = 14
 ) {
-  const meta = await sharp(inputPath).metadata();
+  const meta = await getSharp()(inputPath).metadata();
 
   const output =
     outPath ??
@@ -47,7 +54,7 @@ async function fillRoundedCorners(
   const cropW = width - inset * 2;
   const cropH = height - inset * 2;
 
-  const background = sharp({
+  const background = getSharp()({
     create: {
       width,
       height,
@@ -56,7 +63,7 @@ async function fillRoundedCorners(
     },
   });
 
-  const innerBuf = await sharp(inputPath)
+  const innerBuf = await getSharp()(inputPath)
     .extract({ left: inset, top: inset, width: cropW, height: cropH })
     .toBuffer();
 

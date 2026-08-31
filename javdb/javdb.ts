@@ -7,7 +7,6 @@
 
 //@ts-nocheck
 import axios from "axios";
-import * as cheerio from "cheerio";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -20,6 +19,14 @@ import { Api } from "teleproto";
 import { CustomFile } from "teleproto/client/uploads";
 
 import { htmlEscape } from "@utils/htmlEscape";
+
+type CheerioModule = typeof import("cheerio");
+let cheerioModule: CheerioModule | undefined;
+
+function getCheerio(): CheerioModule {
+  if (!cheerioModule) cheerioModule = require("cheerio") as CheerioModule;
+  return cheerioModule;
+}
 
 // ==================== 工具函数与常量 ====================
 /** 获取命令前缀 */
@@ -104,7 +111,7 @@ async function searchByCode(code: string): Promise<MovieItem[]> {
   });
 
   // 解析 HTML 响应
-  const $ = cheerio.load(data);
+  const $ = getCheerio().load(data);
   
   // 提取搜索结果
   return $(".movie-list .item").toArray().map((el) => {
@@ -137,7 +144,7 @@ async function fetchDetail(url: string): Promise<MovieDetail> {
   });
 
   // 解析 HTML
-  const $ = cheerio.load(html);
+  const $ = getCheerio().load(html);
   
   // 定义解析工具函数
   const getPanelValue = (label: string) =>

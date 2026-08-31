@@ -11,7 +11,6 @@ import * as os from "os";
 import * as net from "net";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { ZipArchive } from "archiver";
 import dayjs from "dayjs";
 import crypto from "crypto";
 
@@ -22,6 +21,11 @@ import { Client as SSH2Client } from 'ssh2';
 import { htmlEscape } from "@utils/htmlEscape";
 
 const execFileAsync = promisify(execFile);
+
+function createZipArchive(options: ConstructorParameters<typeof import("archiver")["ZipArchive"]>[0]) {
+  const { ZipArchive } = require("archiver") as typeof import("archiver");
+  return new ZipArchive(options);
+}
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
 
@@ -1530,7 +1534,7 @@ ${keysContent}`;
   private async createArchive(sourceDir: string, outputPath: string, files: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const output = fs.createWriteStream(outputPath);
-      const archive = new ZipArchive( {
+      const archive = createZipArchive({
         zlib: { level: 9 } // 最高压缩级别
       });
 

@@ -2,14 +2,27 @@ import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { Api } from "teleproto";
 import axios from "axios";
-import sharp from "sharp";
 import * as fs from "fs";
 import * as path from "path";
 import { createDirectoryInTemp } from "@utils/pathHelpers";
-import * as cheerio from "cheerio";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
+
+type SharpFactory = typeof import("sharp");
+type CheerioModule = typeof import("cheerio");
+let sharpFactory: SharpFactory | undefined;
+let cheerioModule: CheerioModule | undefined;
+
+function getSharp(): SharpFactory {
+  if (!sharpFactory) sharpFactory = require("sharp") as SharpFactory;
+  return sharpFactory;
+}
+
+function getCheerio(): CheerioModule {
+  if (!cheerioModule) cheerioModule = require("cheerio") as CheerioModule;
+  return cheerioModule;
+}
 
 const BGP_COMMON_HEADERS = {
     "User-Agent":
@@ -197,7 +210,7 @@ function extractDNSData(html: string): {
     const domainRecords: Array<{ ip: string; domain: string; topLevelDomain: string }> = [];
 
     try {
-        const $ = cheerio.load(html);
+        const $ = getCheerio().load(html);
         const allText = $.text();
 
         const ipDomainPattern =
@@ -399,7 +412,7 @@ class BGPPlugin extends Plugin {
                     if (result.status === "ok") {
                         fs.writeFileSync(svgPath, result.svgBuffer);
 
-                        await sharp(svgPath, { density: 300 })
+                        await getSharp()(svgPath, { density: 300 })
                             .resize({
                                 width: 2400,
                                 height: 1800,

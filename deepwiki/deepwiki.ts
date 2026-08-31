@@ -5,8 +5,6 @@ import { JSONFilePreset } from "lowdb/node";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { TelegramFormatter } from "@utils/telegramFormatter";
 import { TelegraphFormatter } from "@utils/telegraphFormatter";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import path from "path";
 import axios from "axios";
 import http from "http";
@@ -407,6 +405,10 @@ class DeepWikiMcp {
     if (this.connecting) return await this.connecting;
 
     this.connecting = (async () => {
+      const [{ Client }, { StreamableHTTPClientTransport }] = await Promise.all([
+        import("@modelcontextprotocol/sdk/client/index.js"),
+        import("@modelcontextprotocol/sdk/client/streamableHttp.js"),
+      ]);
       const transport = new StreamableHTTPClientTransport(new URL("https://mcp.deepwiki.com/mcp"));
       const client = new Client({ name: "telebox-deepwiki", version: "1.0.0" });
       try {

@@ -3,7 +3,6 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets, createDirectoryInTemp } from "@utils/pathHelpers";
 import { Api } from "teleproto";
-import sharp from "sharp";
 import * as fs from "fs";
 import * as path from "path";
 import { JSONFilePreset } from "lowdb/node";
@@ -11,6 +10,14 @@ import { sleep } from "teleproto/Helpers";
 import { safeGetMessages } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
+
+type SharpFactory = typeof import("sharp");
+let sharpFactory: SharpFactory | undefined;
+
+function getSharp(): SharpFactory {
+  if (!sharpFactory) sharpFactory = require("sharp") as SharpFactory;
+  return sharpFactory;
+}
 
 // 必需工具函数
 // 获取命令前缀
@@ -476,12 +483,12 @@ class PicToStickerPlugin extends Plugin {
       // 使用 sharp 处理图片
       try {
         // 获取图片信息
-        const metadata = await sharp(originalPath).metadata();
+        const metadata = await getSharp()(originalPath).metadata();
         const isAnimated = metadata.pages && metadata.pages > 1;
 
         if (isAnimated) {
           // 处理动图（GIF）
-          await sharp(originalPath, { animated: true })
+          await getSharp()(originalPath, { animated: true })
             .resize(this.config.size, this.config.size, {
               fit: 'contain',
               background: this.config.background === 'transparent' 
@@ -497,7 +504,7 @@ class PicToStickerPlugin extends Plugin {
             .toFile(stickerPath);
         } else {
           // 处理静态图片
-          let pipeline = sharp(originalPath)
+          let pipeline = getSharp()(originalPath)
             .resize(this.config.size, this.config.size, {
               fit: 'contain',
               background: this.config.background === 'transparent' 
@@ -547,7 +554,7 @@ class PicToStickerPlugin extends Plugin {
           console.log("[pic_to_sticker] 文件过大，尝试降低质量...");
           
           // 降低质量重新处理
-          await sharp(originalPath)
+          await getSharp()(originalPath)
             .resize(this.config.size, this.config.size, {
               fit: 'contain',
               background: { r: 0, g: 0, b: 0, alpha: 0 }

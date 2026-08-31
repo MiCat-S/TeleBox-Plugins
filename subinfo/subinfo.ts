@@ -4,11 +4,18 @@ import { Api } from "teleproto";
 import { getGlobalClient } from "@utils/runtimeManager";
 import axios from "axios";
 import * as yaml from "js-yaml";
-import * as cheerio from "cheerio";
 import dayjs from "dayjs";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { htmlEscape } from "@utils/htmlEscape";
+
+type CheerioModule = typeof import("cheerio");
+let cheerioModule: CheerioModule | undefined;
+
+function getCheerio(): CheerioModule {
+  if (!cheerioModule) cheerioModule = require("cheerio") as CheerioModule;
+  return cheerioModule;
+}
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
@@ -310,7 +317,7 @@ async function getWebsiteInfo(url: string): Promise<{ website: string | null; we
     }
 
     if (response.status === 200) {
-      const $ = cheerio.load(response.data);
+      const $ = getCheerio().load(response.data);
       let title = $('title').text().trim();
       title = title.replace('登录 — ', '').replace(' | 登录', '');
       

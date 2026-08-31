@@ -4,7 +4,8 @@ const Module = require("node:module");
 const path = require("node:path");
 const { createRequire } = require("node:module");
 
-const projectRequire = createRequire("/root/telebox/package.json");
+const coreRoot = process.env.TELEBOX_CORE_ROOT || path.resolve(__dirname, "../../TeleBox-Core");
+const projectRequire = createRequire(path.join(coreRoot, "package.json"));
 const esbuild = projectRequire("esbuild");
 const { Api } = projectRequire("teleproto");
 const sourcePath = path.join(__dirname, "eatgif.ts");
@@ -27,13 +28,14 @@ Module._load = function (request, parent, isMain) {
   }
   if (request === "@utils/pluginManager") return { getPrefixes: () => ["."] };
   if (request === "@utils/safeGetMessages") return { safeGetReplyMessage: async () => undefined };
+  if (request === "@utils/htmlEscape") return { htmlEscape: String };
   if (request === "axios") return { get: async () => ({ data: {} }) };
   return originalLoad.call(this, request, parent, isMain);
 };
 
 const pluginModule = new Module(sourcePath, module);
 pluginModule.filename = sourcePath;
-pluginModule.paths = Module._nodeModulePaths("/root/telebox");
+pluginModule.paths = Module._nodeModulePaths(coreRoot);
 try {
   pluginModule._compile(compiled, sourcePath);
 } finally {

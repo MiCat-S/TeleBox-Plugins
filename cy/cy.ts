@@ -4,9 +4,16 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { safeGetMessages } from "@utils/safeGetMessages";
 import { Api } from "teleproto";
 import { CustomFile } from "teleproto/client/uploads";
-import { createCanvas, registerFont } from "canvas";
 import fs from "fs";
 import path from "path";
+
+type CanvasModule = typeof import("canvas");
+let canvasModule: CanvasModule | undefined;
+
+function getCanvasModule(): CanvasModule {
+  if (!canvasModule) canvasModule = require("canvas") as CanvasModule;
+  return canvasModule;
+}
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0] || ".";
@@ -32,7 +39,7 @@ function ensureCjkFont(): void {
   for (const fontPath of CJK_FONT_CANDIDATES) {
     if (!fs.existsSync(fontPath)) continue;
     try {
-      registerFont(fontPath, { family: CJK_FONT_FAMILY });
+      getCanvasModule().registerFont(fontPath, { family: CJK_FONT_FAMILY });
       cjkFontRegistered = true;
       break;
     } catch (error) {
@@ -65,7 +72,7 @@ type WordItem = {
   height?: number;
 };
 
-type CanvasContext = ReturnType<ReturnType<typeof createCanvas>["getContext"]>;
+type CanvasContext = ReturnType<ReturnType<CanvasModule["createCanvas"]>["getContext"]>;
 
 type CyScheduleConfig = {
   enabled: boolean;
@@ -299,7 +306,7 @@ function layoutWords(ctx: CanvasContext, words: WordItem[]): WordItem[] {
 
 function renderWordCloud(words: WordItem[], limit: number, validMessages: number): Buffer {
   ensureCjkFont();
-  const canvas = createCanvas(WIDTH, HEIGHT);
+  const canvas = getCanvasModule().createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
