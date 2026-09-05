@@ -17,6 +17,9 @@ declare module "@utils/pluginBase" {
 
 declare module "@utils/pluginManager" {
   export function getPrefixes(): string[];
+  export function getPluginEntry(command: string):
+    | { plugin: import("@utils/pluginBase").Plugin }
+    | undefined;
 }
 
 declare module "@utils/pathHelpers" {

@@ -21,6 +21,7 @@
   "include": [
     "ai-sum-review-shims.d.ts",
     "../ai/ai.ts",
+    "../gt/gt.ts",
     "../sum/sum.ts"
   ]
 }

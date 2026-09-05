@@ -1,197 +1,127 @@
 import { Plugin } from "@utils/pluginBase";
-import { Api, TelegramClient } from "teleproto";
+import { Api } from "teleproto";
+import { getPluginEntry } from "@utils/pluginManager";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
-
 import { htmlEscape } from "@utils/htmlEscape";
 
-const gt = async (msg: Api.Message) => {
-  let translate: any;
+interface TranslationProvider {
+  translateText(
+    text: string,
+    target: "zh-CN" | "en",
+    signal: AbortSignal,
+  ): Promise<string>;
+}
 
-  try {
-    // 动态导入翻译库
-    const translateModule = await import("@vitalets/google-translate-api");
-    translate = translateModule.translate || translateModule.default;
+const help = `📘 <b>AI 翻译</b>
 
-    if (!translate || typeof translate !== "function") {
-      await msg.edit({
-        text: "❌ 翻译服务未正确加载，请检查网络连接或重启程序",
-        parseMode: "html",
-      });
-      return;
-    }
-  } catch (importError: any) {
-    console.error("Failed to import translation service:", importError);
-    await msg.edit({
-      text: `❌ <b>翻译服务加载失败:</b> ${htmlEscape(String(importError.message || importError))}`,
-      parseMode: "html",
-    });
-    return;
-  }
-
-  try {
-    const args = msg.message.split(" ").slice(1); // Remove command part
-    let text = "";
-    let target = "zh-CN";
-
-    // Check for help command
-    if (args.length > 0 && ["h", "help"].includes(args[0].toLowerCase())) {
-      await msg.edit({
-        text: `📘 <b>使用说明：</b>
-
-<b>基本用法：</b>
-• <code>gt [文本]</code> - 翻译为中文（默认）
+• <code>gt [文本]</code> - 翻译为简体中文
 • <code>gt en [文本]</code> - 翻译为英文
+• 回复消息后使用 <code>gt</code> 或 <code>gt en</code>
+• <code>gt help</code> - 查看帮助
 
-<b>回复消息翻译：</b>
-• <code>gt</code> 或 <code>gt en</code>
+使用 ai 插件当前聊天 API、模型及超时设置。
+请先安装配套 ai 插件，并通过 <code>ai config add</code> 和 <code>ai model chat</code> 配置。
+待翻译文本会发送至该 API，可能产生模型调用费用。`;
 
-<b>示例：</b>
-1. <code>gt Hello world</code>
-2. <code>gt en 你好，世界</code>
-3. 回复英文消息后 <code>gt</code>`,
-        parseMode: "html",
-      });
-      return;
-    }
+class GtPlugin extends Plugin {
+  description = help;
+  private activeRequests = new Set<AbortController>();
+  private stopped = false;
 
-    // Check if first argument is "en" for English translation
-    if (args.length > 0 && args[0].toLowerCase() === "en") {
-      target = "en";
-      text = args.slice(1).join(" ");
-    } else {
-      text = args.join(" ");
-    }
-
-    // If no text provided, try to get from replied message
-    if (!text.trim()) {
+  cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
+    gt: async (msg) => {
+      let controller: AbortController | undefined;
       try {
-        const reply = await safeGetReplyMessage(msg);
-        if (reply && reply.text) {
-          text = reply.text.trim();
-        } else {
+        let text = msg.message.replace(/^\S+\s*/, "");
+        const first = text.match(/^\S+/)?.[0].toLowerCase();
+        if (first === "h" || first === "help") {
+          await msg.edit({ text: help, parseMode: "html" });
+          return;
+        }
+
+        const target = first === "en" ? "en" : "zh-CN";
+        if (target === "en") text = text.replace(/^\S+\s*/, "");
+        if (!text.trim()) {
+          const reply = await safeGetReplyMessage(msg);
+          text = reply?.text || "";
+        }
+        if (!text.trim()) {
           await msg.edit({
-            text: "❌ 请提供要翻译的文本或回复一条消息",
+            text: "❌ 请提供要翻译的文本或回复一条文字消息",
             parseMode: "html",
           });
           return;
         }
-      } catch (replyError: any) {
-        console.error("Failed to get reply message:", replyError);
+        if (text.length > 5000) {
+          await msg.edit({
+            text: "❌ 文本过长，请保持在5000字符以内",
+            parseMode: "html",
+          });
+          return;
+        }
+        if (this.stopped) return;
+
+        const ai = getPluginEntry("ai")?.plugin as
+          | (Plugin & Partial<TranslationProvider>)
+          | undefined;
+        if (typeof ai?.translateText !== "function") {
+          await msg.edit({
+            text: "❌ 请先安装或更新配套 ai 插件，并配置 ai model chat",
+            parseMode: "html",
+          });
+          return;
+        }
+
+        controller = new AbortController();
+        this.activeRequests.add(controller);
+        await msg.edit({ text: "🔄 <b>AI 翻译中...</b>", parseMode: "html" });
+        const translated = await ai.translateText(text, target, controller.signal);
+        if (controller.signal.aborted) return;
+        if (!translated.trim()) throw new Error("AI 翻译结果为空");
+
+        // Split before HTML escaping and preserve surrogate pairs.
+        const chunks: string[] = [];
+        let chunk = "";
+        for (const character of translated) {
+          if (chunk.length + character.length > 3000) {
+            chunks.push(chunk);
+            chunk = "";
+          }
+          chunk += character;
+        }
+        if (chunk) chunks.push(chunk);
+
+        const language = target === "en" ? "英文" : "中文";
+        const preview = Array.from(text).slice(0, 50).join("");
         await msg.edit({
-          text: "❌ 请提供要翻译的文本（无法获取回复消息）",
+          text: `🌐 <b>AI 翻译结果</b> (→ ${language})\n\n` +
+            `<b>原文:</b>\n<code>${htmlEscape(preview)}${preview.length < text.length ? "..." : ""}</code>\n\n` +
+            `<b>译文:</b>\n${htmlEscape(chunks[0])}`,
           parseMode: "html",
         });
-        return;
+        for (const remaining of chunks.slice(1)) {
+          if (controller.signal.aborted) return;
+          await msg.reply({ message: htmlEscape(remaining), parseMode: "html" });
+        }
+      } catch {
+        if (!this.stopped && !controller?.signal.aborted) {
+          // Provider errors may contain credentials or source text.
+          await msg.edit({
+            text: "❌ AI 翻译失败，请检查 ai 聊天配置、API 可用性及超时设置后重试",
+            parseMode: "html",
+          });
+        }
+      } finally {
+        if (controller) this.activeRequests.delete(controller);
       }
-    }
-
-    // 验证文本长度
-    if (text.length > 5000) {
-      await msg.edit({
-        text: "❌ 文本过长，请保持在5000字符以内",
-        parseMode: "html",
-      });
-      return;
-    }
-
-    // Show translating message
-    await msg.edit({
-      text: "🔄 <b>翻译中...</b>",
-      parseMode: "html",
-    });
-
-    // Perform translation using @vitalets/google-translate-api
-    let result;
-    let translated;
-
-    try {
-      // 设置超时和重试机制
-      const translateOptions = {
-        to: target,
-        timeout: 10000, // 10秒超时
-      };
-
-      result = await translate(text, translateOptions);
-      translated = result?.text || result;
-
-      if (
-        !translated ||
-        typeof translated !== "string" ||
-        translated.trim() === ""
-      ) {
-        throw new Error("翻译结果为空或格式错误");
-      }
-
-      // 检查翻译质量（避免原文和译文完全相同）
-      if (translated.trim() === text.trim() && text.length > 10) {
-        console.warn("翻译结果与原文相同，可能翻译失败");
-      }
-    } catch (translateError: any) {
-      console.error("Translation API error:", translateError);
-
-      // 分类处理不同类型的错误
-      let errorMsg = "翻译服务暂时不可用";
-      const errorStr = String(translateError.message || translateError);
-
-      if (errorStr.includes("timeout") || errorStr.includes("TIMEOUT")) {
-        errorMsg = "翻译请求超时，请稍后重试";
-      } else if (errorStr.includes("network") || errorStr.includes("NETWORK")) {
-        errorMsg = "网络连接失败，请检查网络连接";
-      } else if (errorStr.includes("rate limit") || errorStr.includes("429")) {
-        errorMsg = "请求过于频繁，请稍后重试";
-      }
-
-      throw new Error(errorMsg);
-    }
-
-    // Send result
-    const targetLang = target === "zh-CN" ? "中文" : "英文";
-    const originalPreview =
-      text.length > 50 ? text.substring(0, 50) + "..." : text;
-
-    await msg.edit({
-      text: `🌐 <b>翻译结果</b> (→ ${targetLang})
-
-<b>原文:</b>
-<code>${htmlEscape(originalPreview)}</code>
-
-<b>译文:</b>
-${htmlEscape(translated)}`,
-      parseMode: "html",
-    });
-  } catch (error: any) {
-    console.error("Translation error:", error);
-    const errorMessage = error.message || String(error);
-    const displayError =
-      errorMessage.length > 100
-        ? errorMessage.substring(0, 100) + "..."
-        : errorMessage;
-
-    await msg.edit({
-      text: `❌ <b>翻译失败:</b> ${htmlEscape(displayError)}`,
-      parseMode: "html",
-    });
-  }
-};
-
-class GtPlugin extends Plugin {
-
-  description: string = `
-谷歌翻译插件：
-- gt [文本] - 翻译为中文（默认）
-- gt en [文本] - 翻译为英文
-
-也可回复一段消息后使用：
-- gt 或 gt en
-
-示例：
-1. gt Hello world
-2. gt en 你好，世界
-3. 回复英文消息后 gt
-  `;
-  cmdHandlers: Record<string, (msg: Api.Message) => Promise<void>> = {
-    gt,
+    },
   };
+
+  cleanup(): void {
+    this.stopped = true;
+    for (const controller of this.activeRequests) controller.abort();
+    this.activeRequests.clear();
+  }
 }
 
 export default new GtPlugin();
