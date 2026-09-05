@@ -1,0 +1,13 @@
+{
+  "extends": "../TeleBox-Core/tsconfig.v2.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "typeRoots": ["../TeleBox-Core/node_modules/@types"],
+    "paths": {
+      "telebox/sdk": ["../TeleBox-Core/src/v2/sdk.ts"],
+      "teleproto": ["../TeleBox-Core/node_modules/teleproto/index.d.ts"],
+      "teleproto/*": ["../TeleBox-Core/node_modules/teleproto/*"]
+    }
+  },
+  "include": ["*/v2.ts", "*/v2/**/*.ts"]
+}
