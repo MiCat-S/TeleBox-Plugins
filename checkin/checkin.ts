@@ -579,13 +579,14 @@ class CheckInPlugin extends Plugin {
     );
   }
 
-  private findCallbackButton(msg: Api.Message, target: SignTarget): any | null {
+  private findCallbackButton(msg: Api.Message, target: SignTarget): Api.InlineButtonTypeCallback | null {
     const rows = (msg as any).replyMarkup?.rows || [];
     for (const row of rows) {
       for (const b of row.buttons || []) {
-        const d = this.decodeData(b.data);
-        if (target.callbackData && d === target.callbackData) return b;
-        if (!target.callbackData && target.buttonText && b.text === target.buttonText) return b;
+        if (!(b.type instanceof Api.InlineButtonTypeCallback)) continue;
+        const d = this.decodeData(b.type.data);
+        if (target.callbackData && d === target.callbackData) return b.type;
+        if (!target.callbackData && target.buttonText && b.text === target.buttonText) return b.type;
       }
     }
     return null;
